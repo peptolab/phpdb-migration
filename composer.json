@@ -1,0 +1,65 @@
+{
+    "name": "peptolab/phpdb-migration",
+    "description": "Idempotent database migration engine for php-db/phpdb.",
+    "license": "BSD-3-Clause",
+    "keywords": [
+        "phpdb",
+        "database",
+        "migration",
+        "schema"
+    ],
+    "homepage": "https://github.com/peptolab/phpdb-migration",
+    "minimum-stability": "dev",
+    "prefer-stable": true,
+    "support": {
+        "issues": "https://github.com/peptolab/phpdb-migration/issues",
+        "source": "https://github.com/peptolab/phpdb-migration"
+    },
+    "config": {
+        "sort-packages": true,
+        "allow-plugins": {
+            "dealerdirect/phpcodesniffer-composer-installer": true
+        }
+    },
+    "extra": {
+        "laminas": {
+            "config-provider": "PhpDb\\Migration\\ConfigProvider"
+        }
+    },
+    "require": {
+        "php": "^8.3",
+        "php-db/phpdb": "^0.6",
+        "symfony/console": "^6.0 || ^7.0"
+    },
+    "require-dev": {
+        "laminas/laminas-coding-standard": "^3.0",
+        "phpstan/phpstan": "^2.0",
+        "phpunit/phpunit": "^11.0"
+    },
+    "suggest": {
+        "laminas/laminas-servicemanager": "For container-based factory integration (^3.0 || ^4.0)",
+        "laminas/laminas-cli": "For CLI command integration"
+    },
+    "autoload": {
+        "psr-4": {
+            "PhpDb\\Migration\\": "src/"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "PhpDbTest\\Migration\\": "test/"
+        }
+    },
+    "scripts": {
+        "check": [
+            "@cs-check",
+            "@phpstan",
+            "@test"
+        ],
+        "cs-check": "phpcs",
+        "cs-fix": "phpcbf",
+        "phpstan": "phpstan analyse",
+        "test": "phpunit --colors=always",
+        "test-coverage": "phpunit --colors=always --coverage-clover clover.xml"
+    }
+}

@@ -1,0 +1,7 @@
+/.phpcs-cache
+/.phpunit.cache
+/.phpunit.result.cache
+/phpunit.xml
+/vendor/
+/clover.xml
+/composer.lock
