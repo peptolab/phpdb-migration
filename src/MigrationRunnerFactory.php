@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace PhpDb\Migration;
 
 use PhpDb\Adapter\AdapterInterface;
+use PhpDb\Metadata\MetadataInterface;
 use Psr\Container\ContainerInterface;
 
 use function getcwd;
@@ -30,11 +31,16 @@ class MigrationRunnerFactory
             $resolution = MismatchStrategy::from($resolution);
         }
 
+        $metadata = $container->has(MetadataInterface::class)
+            ? $container->get(MetadataInterface::class)
+            : null;
+
         return new MigrationRunner(
             $adapter,
             $migrationsPath,
             $migrationsNamespace,
             $resolution,
+            $metadata,
         );
     }
 }

@@ -20,6 +20,7 @@ use function is_dir;
 use function is_subclass_of;
 use function preg_match;
 use function sprintf;
+use function str_replace;
 use function usort;
 
 /**
@@ -56,8 +57,8 @@ class MigrationRunner
         $table = new CreateTable(self::MIGRATIONS_TABLE);
 
         $id = new Column\Integer('id');
-        $id->setOption('unsigned', 'true');
-        $id->setOption('auto_increment', 'true');
+        $id->setOption('unsigned', true);
+        $id->setOption('auto_increment', true);
         $table->addColumn($id);
 
         $version = new Column\Varchar('version', 14);
@@ -73,7 +74,7 @@ class MigrationRunner
         $table->addConstraint(new Constraint\UniqueKey(['version'], 'uk_migrations_version'));
 
         $sql       = new Sql($this->adapter);
-        $sqlString = $sql->buildSqlString($table);
+        $sqlString = str_replace('CREATE TABLE', 'CREATE TABLE IF NOT EXISTS', $sql->buildSqlString($table));
 
         $this->adapter->query($sqlString, []);
         $this->inspector->clearCache();
