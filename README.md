@@ -200,3 +200,7 @@ See the [docs/examples](docs/examples/) directory for complete migration example
 ## License
 
 BSD-3-Clause. See [LICENSE](LICENSE).
+
+## Contribute
+
+[![ko-fi](https://ko-fi.com/img/githubbutton_sm.svg)](https://ko-fi.com/yourusername)
