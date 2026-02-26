@@ -6,10 +6,12 @@ namespace PhpDb\Migration;
 
 use PhpDb\Adapter\AdapterInterface;
 use PhpDb\Sql\Ddl\AlterTable;
+use PhpDb\Sql\Ddl\Column\Column;
 use PhpDb\Sql\Ddl\Column\ColumnInterface;
 use PhpDb\Sql\Ddl\Constraint;
 use PhpDb\Sql\Ddl\CreateTable;
 use PhpDb\Sql\Ddl\DropTable;
+use PhpDb\Sql\Ddl\Index\Index;
 use PhpDb\Sql\Sql;
 use PhpDb\Sql\SqlInterface;
 use Throwable;
@@ -207,19 +209,13 @@ abstract class AbstractMigration implements MigrationInterface
             return;
         }
 
-        // PhpDb DDL doesn't support CREATE INDEX directly via AlterTable
-        // We need to use raw SQL
-        $columnList = '`' . implode('`, `', $columns) . '`';
-        $indexType  = $unique ? 'UNIQUE INDEX' : 'INDEX';
-        $sql        = sprintf(
-            'CREATE %s `%s` ON `%s` (%s)',
-            $indexType,
-            $indexName,
-            $tableName,
-            $columnList,
-        );
+        $alter      = new AlterTable($tableName);
+        $constraint = $unique
+            ? new Constraint\UniqueKey($columns, $indexName)
+            : new Index($columns, $indexName);
+        $alter->addConstraint($constraint);
 
-        $this->executeSql($sql, sprintf('Add index "%s" to "%s"', $indexName, $tableName));
+        $this->executeDdl($alter, sprintf('Add index "%s" to "%s"', $indexName, $tableName));
     }
 
     /**
@@ -302,11 +298,8 @@ abstract class AbstractMigration implements MigrationInterface
             return;
         }
 
-        // Use raw SQL for foreign key with ON DELETE/UPDATE options
-        // as PhpDb DDL has limited support for these options
-        $sql = sprintf(
-            'ALTER TABLE `%s` ADD CONSTRAINT `%s` FOREIGN KEY (`%s`) REFERENCES `%s` (`%s`) ON DELETE %s ON UPDATE %s',
-            $tableName,
+        $alter = new AlterTable($tableName);
+        $fk    = new Constraint\ForeignKey(
             $constraintName,
             $column,
             $referenceTable,
@@ -314,8 +307,9 @@ abstract class AbstractMigration implements MigrationInterface
             $onDelete,
             $onUpdate,
         );
+        $alter->addConstraint($fk);
 
-        $this->executeSql($sql, sprintf('Add foreign key "%s" to "%s"', $constraintName, $tableName));
+        $this->executeDdl($alter, sprintf('Add foreign key "%s" to "%s"', $constraintName, $tableName));
     }
 
     /**
@@ -385,8 +379,10 @@ abstract class AbstractMigration implements MigrationInterface
             return;
         }
 
-        $sql = sprintf('DROP INDEX `%s` ON `%s`', $indexName, $tableName);
-        $this->executeSql($sql, sprintf('Drop index "%s" from "%s"', $indexName, $tableName));
+        $alter = new AlterTable($tableName);
+        $alter->dropIndex($indexName);
+
+        $this->executeDdl($alter, sprintf('Drop index "%s" from "%s"', $indexName, $tableName));
     }
 
     /**
@@ -414,8 +410,10 @@ abstract class AbstractMigration implements MigrationInterface
             return;
         }
 
-        $sql = sprintf('ALTER TABLE `%s` DROP FOREIGN KEY `%s`', $tableName, $constraintName);
-        $this->executeSql($sql, sprintf('Drop foreign key "%s" from "%s"', $constraintName, $tableName));
+        $alter = new AlterTable($tableName);
+        $alter->dropConstraint($constraintName);
+
+        $this->executeDdl($alter, sprintf('Drop foreign key "%s" from "%s"', $constraintName, $tableName));
     }
 
     /**
@@ -479,15 +477,10 @@ abstract class AbstractMigration implements MigrationInterface
         $this->executedSql[] = $description ?? $sqlString;
     }
 
-    /**
-     * Modify an existing column.
-     *
-     * Note: This uses raw SQL as PhpDb DDL's CHANGE COLUMN support is limited.
-     */
     protected function modifyColumn(
         string $tableName,
         string $columnName,
-        string $columnDefinition,
+        Column $column,
         ?string $newName = null,
     ): void {
         if (! $this->inspector->tableExists($tableName)) {
@@ -510,17 +503,15 @@ abstract class AbstractMigration implements MigrationInterface
             return;
         }
 
-        $targetName = $newName ?? $columnName;
-        $sql        = sprintf(
-            'ALTER TABLE `%s` CHANGE `%s` `%s` %s',
-            $tableName,
-            $columnName,
-            $targetName,
-            $columnDefinition,
-        );
+        if ($newName !== null) {
+            $column->setName($newName);
+        }
 
-        $this->executeSql(
-            $sql,
+        $alter = new AlterTable($tableName);
+        $alter->changeColumn($columnName, $column);
+
+        $this->executeDdl(
+            $alter,
             sprintf('Modify column "%s" in "%s"', $columnName, $tableName),
         );
     }
@@ -710,13 +701,13 @@ abstract class AbstractMigration implements MigrationInterface
         $this->mismatches = array_merge($this->mismatches, $indexMismatches);
 
         if ($this->mismatchStrategy === MismatchStrategy::Alter) {
-            // Drop and recreate the index
-            $dropSql = sprintf('DROP INDEX `%s` ON `%s`', $indexName, $tableName);
-            $this->executeSql($dropSql, sprintf('Drop index "%s" from "%s" for recreation', $indexName, $tableName));
+            $dropAlter = new AlterTable($tableName);
+            $dropAlter->dropIndex($indexName);
+            $this->executeDdl($dropAlter, sprintf('Drop index "%s" from "%s" for recreation', $indexName, $tableName));
 
-            $columnList = '`' . implode('`, `', $desiredColumns) . '`';
-            $createSql  = sprintf('CREATE INDEX `%s` ON `%s` (%s)', $indexName, $tableName, $columnList);
-            $this->executeSql($createSql, sprintf('Recreate index "%s" on "%s"', $indexName, $tableName));
+            $addAlter = new AlterTable($tableName);
+            $addAlter->addConstraint(new Index($desiredColumns, $indexName));
+            $this->executeDdl($addAlter, sprintf('Recreate index "%s" on "%s"', $indexName, $tableName));
         }
     }
 
@@ -767,26 +758,24 @@ abstract class AbstractMigration implements MigrationInterface
             $this->mismatches = array_merge($this->mismatches, $fkMismatches);
 
             if ($this->mismatchStrategy === MismatchStrategy::Alter) {
-                // Drop and recreate the FK
-                $dropSql = sprintf('ALTER TABLE `%s` DROP FOREIGN KEY `%s`', $tableName, $constraintName);
-                $this->executeSql(
-                    $dropSql,
+                $dropAlter = new AlterTable($tableName);
+                $dropAlter->dropConstraint($constraintName);
+                $this->executeDdl(
+                    $dropAlter,
                     sprintf('Drop foreign key "%s" from "%s" for recreation', $constraintName, $tableName),
                 );
 
-                $createSql = sprintf(
-                    'ALTER TABLE `%s` ADD CONSTRAINT `%s` FOREIGN KEY (`%s`) '
-                    . 'REFERENCES `%s` (`%s`) ON DELETE %s ON UPDATE %s',
-                    $tableName,
+                $addAlter = new AlterTable($tableName);
+                $addAlter->addConstraint(new Constraint\ForeignKey(
                     $constraintName,
                     $desiredColumn,
                     $desiredRefTable,
                     $desiredRefColumn,
                     $desiredOnDelete,
                     $desiredOnUpdate,
-                );
-                $this->executeSql(
-                    $createSql,
+                ));
+                $this->executeDdl(
+                    $addAlter,
                     sprintf('Recreate foreign key "%s" on "%s"', $constraintName, $tableName),
                 );
             }

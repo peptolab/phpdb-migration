@@ -136,7 +136,7 @@ class Version20260101000000CreateUsersTable extends AbstractMigration
 ### Data & Raw SQL
 - `executeSql(string $sql, ?string $description)` - Execute raw SQL
 - `executeSqlIf(bool $condition, string $sql, ?string $description, ?string $skipMessage)` - Conditional SQL
-- `modifyColumn(string $table, string $column, string $definition, ?string $newName)` - ALTER column
+- `modifyColumn(string $table, string $column, Column $column, ?string $newName)` - ALTER column
 - `insertRow(string $table, array $data)` - Insert a row
 - `insertRowIfNotExists(string $table, array $data, array $uniqueColumns)` - Conditional insert
 
@@ -187,6 +187,17 @@ vendor/bin/laminas db:migrate:create "Add tags table"
 ```
 
 This generates a timestamped migration file in the configured migrations directory.
+
+## Requirements
+
+- PHP 8.3+
+- MySQL 8.0.16+ (required for `DROP CONSTRAINT` syntax used by `dropForeignKeyIfExists()`)
+
+## Transaction Support
+
+Each migration is wrapped in a database transaction. On success, the transaction is committed (including the migration tracking record). On failure or exception, the transaction is rolled back.
+
+**Note:** MySQL implicitly commits DDL statements (`CREATE TABLE`, `ALTER TABLE`, etc.), so the transaction primarily protects DML operations and the migration tracking record. If a migration fails partway through DDL changes, those DDL changes cannot be rolled back by MySQL.
 
 ## Examples
 

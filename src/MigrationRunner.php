@@ -11,6 +11,7 @@ use PhpDb\Sql\Ddl\Column;
 use PhpDb\Sql\Ddl\Constraint;
 use PhpDb\Sql\Ddl\CreateTable;
 use PhpDb\Sql\Sql;
+use Throwable;
 
 use function array_filter;
 use function array_map;
@@ -20,7 +21,6 @@ use function is_dir;
 use function is_subclass_of;
 use function preg_match;
 use function sprintf;
-use function str_replace;
 use function usort;
 
 /**
@@ -55,6 +55,7 @@ class MigrationRunner
         }
 
         $table = new CreateTable(self::MIGRATIONS_TABLE);
+        $table->ifNotExists();
 
         $id = new Column\Integer('id');
         $id->setOption('unsigned', true);
@@ -74,7 +75,7 @@ class MigrationRunner
         $table->addConstraint(new Constraint\UniqueKey(['version'], 'uk_migrations_version'));
 
         $sql       = new Sql($this->adapter);
-        $sqlString = str_replace('CREATE TABLE', 'CREATE TABLE IF NOT EXISTS', $sql->buildSqlString($table));
+        $sqlString = $sql->buildSqlString($table);
 
         $this->adapter->query($sqlString, []);
         $this->inspector->clearCache();
@@ -230,7 +231,6 @@ class MigrationRunner
         $version     = $migration->getVersion();
         $description = $migration->getDescription();
 
-        // Check if already applied
         if (in_array($version, $this->getAppliedVersions(), true)) {
             return [
                 'version'     => $version,
@@ -239,16 +239,39 @@ class MigrationRunner
             ];
         }
 
-        // Set mismatch strategy if the migration supports it
         if ($migration instanceof AbstractMigration) {
             $migration->setMismatchStrategy($this->mismatchStrategy);
         }
 
-        $result = $migration->up($this->adapter, $this->inspector);
+        $connection = $this->adapter->getDriver()->getConnection();
+        $connection->beginTransaction();
 
-        // Record the migration if successful
-        if ($result->isSuccess() || $result->isSkipped()) {
-            $this->recordMigration($version, $description);
+        try {
+            $result = $migration->up($this->adapter, $this->inspector);
+
+            if ($result->isFailed()) {
+                $connection->rollback();
+
+                return [
+                    'version'     => $version,
+                    'description' => $description,
+                    'result'      => $result,
+                ];
+            }
+
+            if ($result->isSuccess() || $result->isSkipped()) {
+                $this->recordMigration($version, $description);
+            }
+
+            $connection->commit();
+        } catch (Throwable $e) {
+            $connection->rollback();
+
+            return [
+                'version'     => $version,
+                'description' => $description,
+                'result'      => MigrationResult::failed($e->getMessage()),
+            ];
         }
 
         return [

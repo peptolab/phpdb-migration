@@ -15,10 +15,15 @@ use PhpDb\Sql\Ddl\Column\ColumnInterface;
 use PhpDb\Sql\Ddl\Column\Date;
 use PhpDb\Sql\Ddl\Column\Datetime;
 use PhpDb\Sql\Ddl\Column\Decimal;
+use PhpDb\Sql\Ddl\Column\Double;
 use PhpDb\Sql\Ddl\Column\Floating;
 use PhpDb\Sql\Ddl\Column\Integer;
+use PhpDb\Sql\Ddl\Column\Json;
+use PhpDb\Sql\Ddl\Column\SmallInteger;
 use PhpDb\Sql\Ddl\Column\Text;
 use PhpDb\Sql\Ddl\Column\Time;
+use PhpDb\Sql\Ddl\Column\Timestamp;
+use PhpDb\Sql\Ddl\Column\Varbinary;
 use PhpDb\Sql\Ddl\Column\Varchar;
 
 use function array_diff;
@@ -257,19 +262,24 @@ class DefinitionComparator
 
         // Map known DDL column classes to data types
         $classMap = [
-            Integer::class    => 'int',
-            BigInteger::class => 'bigint',
-            Varchar::class    => 'varchar',
-            Char::class       => 'char',
-            Text::class       => 'text',
-            Blob::class       => 'blob',
-            Boolean::class    => 'tinyint',
-            Date::class       => 'date',
-            Datetime::class   => 'datetime',
-            Time::class       => 'time',
-            Decimal::class    => 'decimal',
-            Floating::class   => 'float',
-            Binary::class     => 'binary',
+            BigInteger::class   => 'bigint',
+            SmallInteger::class => 'smallint',
+            Integer::class      => 'int',
+            Varchar::class      => 'varchar',
+            Char::class         => 'char',
+            Text::class         => 'text',
+            Blob::class         => 'blob',
+            Boolean::class      => 'tinyint',
+            Date::class         => 'date',
+            Datetime::class     => 'datetime',
+            Time::class         => 'time',
+            Timestamp::class    => 'timestamp',
+            Decimal::class      => 'decimal',
+            Double::class       => 'double',
+            Floating::class     => 'float',
+            Varbinary::class    => 'varbinary',
+            Binary::class       => 'binary',
+            Json::class         => 'json',
         ];
 
         foreach ($classMap as $class => $type) {

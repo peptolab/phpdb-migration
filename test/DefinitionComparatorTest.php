@@ -5,7 +5,13 @@ declare(strict_types=1);
 namespace PhpDbTest\Migration;
 
 use PhpDb\Migration\DefinitionComparator;
+use PhpDb\Sql\Ddl\Column\BigInteger;
+use PhpDb\Sql\Ddl\Column\Double;
 use PhpDb\Sql\Ddl\Column\Integer;
+use PhpDb\Sql\Ddl\Column\Json;
+use PhpDb\Sql\Ddl\Column\SmallInteger;
+use PhpDb\Sql\Ddl\Column\Timestamp;
+use PhpDb\Sql\Ddl\Column\Varbinary;
 use PhpDb\Sql\Ddl\Column\Varchar;
 use PHPUnit\Framework\TestCase;
 
@@ -203,6 +209,139 @@ class DefinitionComparatorTest extends TestCase
         self::assertNotNull($deleteMismatch);
         self::assertSame('CASCADE', $deleteMismatch['expected']);
         self::assertSame('RESTRICT', $deleteMismatch['actual']);
+    }
+
+    public function testBigIntegerResolvesToBigint(): void
+    {
+        $existing = [
+            'name'             => 'big_id',
+            'type'             => 'bigint',
+            'nullable'         => false,
+            'default'          => null,
+            'maxLength'        => null,
+            'numericPrecision' => 20,
+            'numericScale'     => 0,
+            'numericUnsigned'  => false,
+        ];
+
+        $desired = new BigInteger('big_id');
+
+        $mismatches = $this->comparator->compareColumn('data', $existing, $desired);
+
+        self::assertSame([], $mismatches);
+    }
+
+    public function testBigIntegerDoesNotResolveToInt(): void
+    {
+        $existing = [
+            'name'             => 'big_id',
+            'type'             => 'int',
+            'nullable'         => false,
+            'default'          => null,
+            'maxLength'        => null,
+            'numericPrecision' => 10,
+            'numericScale'     => 0,
+            'numericUnsigned'  => false,
+        ];
+
+        $desired = new BigInteger('big_id');
+
+        $mismatches = $this->comparator->compareColumn('data', $existing, $desired);
+
+        $typeMismatch = $this->findMismatch($mismatches, 'type');
+        self::assertNotNull($typeMismatch);
+        self::assertSame('bigint', $typeMismatch['expected']);
+        self::assertSame('int', $typeMismatch['actual']);
+    }
+
+    public function testSmallIntegerResolvesToSmallint(): void
+    {
+        $existing = [
+            'name'             => 'small_val',
+            'type'             => 'smallint',
+            'nullable'         => false,
+            'default'          => null,
+            'maxLength'        => null,
+            'numericPrecision' => 5,
+            'numericScale'     => 0,
+            'numericUnsigned'  => false,
+        ];
+
+        $desired = new SmallInteger('small_val');
+
+        self::assertSame([], $this->comparator->compareColumn('data', $existing, $desired));
+    }
+
+    public function testDoubleResolvesToDouble(): void
+    {
+        $existing = [
+            'name'             => 'amount',
+            'type'             => 'double',
+            'nullable'         => false,
+            'default'          => null,
+            'maxLength'        => null,
+            'numericPrecision' => null,
+            'numericScale'     => null,
+            'numericUnsigned'  => null,
+        ];
+
+        $desired = new Double('amount');
+
+        self::assertSame([], $this->comparator->compareColumn('data', $existing, $desired));
+    }
+
+    public function testJsonResolvesToJson(): void
+    {
+        $existing = [
+            'name'             => 'payload',
+            'type'             => 'json',
+            'nullable'         => false,
+            'default'          => null,
+            'maxLength'        => null,
+            'numericPrecision' => null,
+            'numericScale'     => null,
+            'numericUnsigned'  => null,
+        ];
+
+        $desired = new Json('payload');
+
+        self::assertSame([], $this->comparator->compareColumn('data', $existing, $desired));
+    }
+
+    public function testTimestampResolvesToTimestamp(): void
+    {
+        $existing = [
+            'name'             => 'created_at',
+            'type'             => 'timestamp',
+            'nullable'         => false,
+            'default'          => null,
+            'maxLength'        => null,
+            'numericPrecision' => null,
+            'numericScale'     => null,
+            'numericUnsigned'  => null,
+        ];
+
+        $desired = new Timestamp('created_at');
+
+        self::assertSame([], $this->comparator->compareColumn('data', $existing, $desired));
+    }
+
+    public function testVarbinaryResolvesToVarbinary(): void
+    {
+        $existing = [
+            'name'             => 'hash',
+            'type'             => 'varbinary',
+            'nullable'         => false,
+            'default'          => null,
+            'maxLength'        => 32,
+            'numericPrecision' => null,
+            'numericScale'     => null,
+            'numericUnsigned'  => null,
+        ];
+
+        $desired = new Varbinary('hash', 32);
+
+        self::assertSame([], $this->comparator->compareColumn('data', $existing, $desired));
     }
 
     /**
