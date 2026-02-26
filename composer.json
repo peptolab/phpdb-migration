@@ -33,6 +33,7 @@
     },
     "require-dev": {
         "laminas/laminas-coding-standard": "^3.0",
+        "php-db/phpdb-mysql": "0.2.x-dev",
         "phpstan/phpstan": "^2.0",
         "phpunit/phpunit": "^11.0"
     },

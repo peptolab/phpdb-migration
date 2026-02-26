@@ -4,8 +4,12 @@ declare(strict_types=1);
 
 namespace PhpDbTest\Migration\Integration;
 
+use PhpDb\Migration\AbstractMigration;
 use PhpDb\Migration\MigrationInterface;
 use PhpDb\Migration\MigrationRunner;
+use PhpDb\Sql\Ddl\Column;
+use PhpDb\Sql\Ddl\Constraint;
+use PhpDb\Sql\Ddl\CreateTable;
 use RuntimeException;
 
 class MigrationRunnerIntegrationTest extends AbstractIntegrationTestCase
@@ -123,7 +127,7 @@ class MigrationRunnerIntegrationTest extends AbstractIntegrationTestCase
         $this->dropTableIfExists('integration_test');
     }
 
-    public function testTransactionCommitsOnSuccess(): void
+    public function testSuccessfulMigrationIsRecordedAndTableCreated(): void
     {
         $this->dropTableIfExists('tx_test');
 
@@ -138,7 +142,7 @@ class MigrationRunnerIntegrationTest extends AbstractIntegrationTestCase
 
             public function getDescription(): string
             {
-                return 'Transaction commit test';
+                return 'Success recording test';
             }
 
             protected function define(): void
@@ -158,7 +162,7 @@ class MigrationRunnerIntegrationTest extends AbstractIntegrationTestCase
         $this->dropTableIfExists('tx_test');
     }
 
-    public function testTransactionRollsBackOnException(): void
+    public function testFailedMigrationIsNotRecorded(): void
     {
         $runner = $this->createRunner();
         $runner->ensureMigrationsTable();

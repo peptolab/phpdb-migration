@@ -17,7 +17,6 @@
     </testsuites>
 
     <php>
-        <env name="DB_DRIVER" value="Pdo_Mysql"/>
         <env name="DB_HOST" value="127.0.0.1"/>
         <env name="DB_PORT" value="3306"/>
         <env name="DB_NAME" value="phpdb_migration_test"/>

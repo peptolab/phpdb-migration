@@ -16,6 +16,7 @@ use PhpDb\ResultSet\ResultSetInterface;
 use PhpDb\Sql\Ddl\Column;
 use PhpDb\Sql\Ddl\Constraint;
 use PhpDb\Sql\Ddl\CreateTable;
+use PhpDb\Sql\Platform\AbstractPlatform;
 use PhpDbTest\Migration\Asset\TestableMigration;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
@@ -490,7 +491,11 @@ class AbstractMigrationTest extends TestCase
         $adapter  = $this->createMock(AdapterInterface::class);
         $platform = $this->createMock(PlatformInterface::class);
 
+        $sqlPlatformDecorator = $this->createMock(AbstractPlatform::class);
+        $sqlPlatformDecorator->method('getDecorators')->willReturn([]);
+
         $adapter->method('getPlatform')->willReturn($platform);
+        $platform->method('getSqlPlatformDecorator')->willReturn($sqlPlatformDecorator);
         $platform->method('quoteIdentifier')
             ->willReturnCallback(fn (string $id): string => '`' . $id . '`');
         $platform->method('quoteIdentifierChain')

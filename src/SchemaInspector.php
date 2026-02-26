@@ -237,7 +237,8 @@ class SchemaInspector
         $platformName = $this->adapter->getPlatform()->getName();
 
         $sourceMap = [
-            'MySQL'      => 'PhpDb\Metadata\Source\MysqlMetadata',
+            // phpcs:ignore WebimpressCodingStandard.Formatting.StringClassReference.Found
+            'MySQL'      => 'PhpDb\Mysql\Metadata\Source',
             'SQLServer'  => 'PhpDb\Metadata\Source\SqlServerMetadata',
             'SQLite'     => 'PhpDb\Metadata\Source\SqliteMetadata',
             'PostgreSQL' => 'PhpDb\Metadata\Source\PostgresqlMetadata',
@@ -248,7 +249,7 @@ class SchemaInspector
 
         if ($sourceClass !== null && class_exists($sourceClass)) {
             /** @var MetadataInterface $source */
-            $source = new $sourceClass($this->adapter);
+            $source = new $sourceClass($this->adapter); // @phpstan-ignore varTag.nativeType, argument.type
 
             return $source;
         }

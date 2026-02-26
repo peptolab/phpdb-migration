@@ -243,15 +243,10 @@ class MigrationRunner
             $migration->setMismatchStrategy($this->mismatchStrategy);
         }
 
-        $connection = $this->adapter->getDriver()->getConnection();
-        $connection->beginTransaction();
-
         try {
             $result = $migration->up($this->adapter, $this->inspector);
 
             if ($result->isFailed()) {
-                $connection->rollback();
-
                 return [
                     'version'     => $version,
                     'description' => $description,
@@ -262,11 +257,7 @@ class MigrationRunner
             if ($result->isSuccess() || $result->isSkipped()) {
                 $this->recordMigration($version, $description);
             }
-
-            $connection->commit();
         } catch (Throwable $e) {
-            $connection->rollback();
-
             return [
                 'version'     => $version,
                 'description' => $description,

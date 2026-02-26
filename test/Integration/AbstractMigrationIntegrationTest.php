@@ -4,7 +4,9 @@ declare(strict_types=1);
 
 namespace PhpDbTest\Migration\Integration;
 
+use PhpDb\Migration\AbstractMigration;
 use PhpDb\Migration\SchemaInspector;
+use PhpDb\Sql\Ddl\Column;
 
 class AbstractMigrationIntegrationTest extends AbstractIntegrationTestCase
 {
