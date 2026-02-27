@@ -12,7 +12,7 @@ use PhpDb\Migration\MigrationInterface;
 use PhpDb\Migration\MigrationResult;
 use PhpDb\Migration\MigrationRunner;
 use PhpDb\ResultSet\ResultSetInterface;
-use PhpDb\Sql\Platform\AbstractPlatform;
+use PhpDb\Mysql\Sql\Platform as MysqlPlatform;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -30,13 +30,11 @@ class MigrationRunnerTest extends TestCase
         $this->metadata = $this->createMock(MetadataInterface::class);
 
         $platform             = $this->createMock(PlatformInterface::class);
-        $sqlPlatformDecorator = $this->createMock(AbstractPlatform::class);
+        $sqlPlatformDecorator = new MysqlPlatform();
         $driver               = $this->createMock(DriverInterface::class);
 
         $this->adapter->method('getPlatform')->willReturn($platform);
         $this->adapter->method('getDriver')->willReturn($driver);
-
-        $sqlPlatformDecorator->method('getDecorators')->willReturn([]);
         $platform->method('getSqlPlatformDecorator')->willReturn($sqlPlatformDecorator);
         $platform->method('quoteIdentifier')
             ->willReturnCallback(fn (string $id): string => '`' . $id . '`');
