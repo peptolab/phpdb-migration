@@ -133,6 +133,10 @@ abstract class AbstractMigration implements MigrationInterface
         $callback($table);
 
         $this->executeDdl($table, sprintf('Create table "%s"', $tableName));
+
+        // Update the inspector cache so subsequent operations in this same
+        // migration (ensureColumn, ensureForeignKey, etc.) can see the table.
+        $this->inspector->markTableCreated($tableName);
     }
 
     /**

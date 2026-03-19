@@ -186,6 +186,10 @@ class SchemaInspector
      * Clear all cached data.
      *
      * Call this between migrations to ensure fresh schema state.
+     * Creates a fresh metadata instance to avoid stale internal caches
+     * in the underlying metadata source (which caches table/column lists
+     * with no public cache-clearing API). Falls back to the injected
+     * metadata when a fresh instance cannot be created (e.g., in tests).
      */
     public function clearCache(): void
     {
@@ -194,7 +198,24 @@ class SchemaInspector
         $this->indexCache         = [];
         $this->constraintCache    = [];
         $this->columnDetailsCache = [];
-        $this->metadata           = $this->injectedMetadata;
+
+        try {
+            $this->metadata = $this->createMetadataFromAdapter();
+        } catch (\Throwable) {
+            $this->metadata = $this->injectedMetadata;
+        }
+    }
+
+    /**
+     * Mark a table as existing in the cache.
+     *
+     * Called after a table is created within the same migration,
+     * so subsequent operations (ensureColumn, ensureForeignKey, etc.)
+     * can see the newly created table without re-querying metadata.
+     */
+    public function markTableCreated(string $tableName): void
+    {
+        $this->tableCache[$tableName] = true;
     }
 
     /**
