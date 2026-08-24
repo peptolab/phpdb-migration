@@ -6,6 +6,7 @@ namespace PhpDbTest\Migration;
 
 use PhpDb\Migration\DefinitionComparator;
 use PhpDb\Sql\Ddl\Column\BigInteger;
+use PhpDb\Sql\Ddl\Column\Decimal;
 use PhpDb\Sql\Ddl\Column\Double;
 use PhpDb\Sql\Ddl\Column\Integer;
 use PhpDb\Sql\Ddl\Column\Json;
@@ -342,6 +343,133 @@ class DefinitionComparatorTest extends TestCase
         $desired = new Varbinary('hash', 32);
 
         self::assertSame([], $this->comparator->compareColumn('data', $existing, $desired));
+    }
+
+    public function testCompareColumnPrecisionAndScaleMismatch(): void
+    {
+        $existing = [
+            'name'             => 'amount',
+            'type'             => 'decimal',
+            'nullable'         => false,
+            'default'          => null,
+            'maxLength'        => null,
+            'numericPrecision' => 8,
+            'numericScale'     => 1,
+            'numericUnsigned'  => null,
+        ];
+
+        $desired = new Decimal('amount', digits: 10, decimal: 2);
+
+        $mismatches = $this->comparator->compareColumn('invoices', $existing, $desired);
+
+        $precisionMismatch = $this->findMismatch($mismatches, 'precision');
+        self::assertNotNull($precisionMismatch);
+        self::assertSame('10', $precisionMismatch['expected']);
+        self::assertSame('8', $precisionMismatch['actual']);
+
+        $scaleMismatch = $this->findMismatch($mismatches, 'scale');
+        self::assertNotNull($scaleMismatch);
+        self::assertSame('2', $scaleMismatch['expected']);
+        self::assertSame('1', $scaleMismatch['actual']);
+    }
+
+    public function testCompareColumnPrecisionAndScaleNoMismatch(): void
+    {
+        $existing = [
+            'name'             => 'amount',
+            'type'             => 'decimal',
+            'nullable'         => false,
+            'default'          => null,
+            'maxLength'        => null,
+            'numericPrecision' => 10,
+            'numericScale'     => 2,
+            'numericUnsigned'  => null,
+        ];
+
+        $desired = new Decimal('amount', digits: 10, decimal: 2);
+
+        self::assertSame([], $this->comparator->compareColumn('invoices', $existing, $desired));
+    }
+
+    public function testCompareColumnUnsignedMismatch(): void
+    {
+        $existing = [
+            'name'             => 'count',
+            'type'             => 'int',
+            'nullable'         => false,
+            'default'          => null,
+            'maxLength'        => null,
+            'numericPrecision' => null,
+            'numericScale'     => null,
+            'numericUnsigned'  => false,
+        ];
+
+        $desired = new Integer('count');
+        $desired->setOption('unsigned', true);
+
+        $mismatches = $this->comparator->compareColumn('stats', $existing, $desired);
+
+        $unsignedMismatch = $this->findMismatch($mismatches, 'unsigned');
+        self::assertNotNull($unsignedMismatch);
+        self::assertSame('YES', $unsignedMismatch['expected']);
+        self::assertSame('NO', $unsignedMismatch['actual']);
+    }
+
+    public function testCompareColumnUnsignedNoMismatchWhenBothMatch(): void
+    {
+        $existing = [
+            'name'             => 'count',
+            'type'             => 'int',
+            'nullable'         => false,
+            'default'          => null,
+            'maxLength'        => null,
+            'numericPrecision' => null,
+            'numericScale'     => null,
+            'numericUnsigned'  => true,
+        ];
+
+        $desired = new Integer('count');
+        $desired->setOption('unsigned', true);
+
+        self::assertSame([], $this->comparator->compareColumn('stats', $existing, $desired));
+    }
+
+    public function testCompareColumnUnsignedSkippedWhenExistingUnsignedUnknown(): void
+    {
+        $existing = [
+            'name'             => 'count',
+            'type'             => 'int',
+            'nullable'         => false,
+            'default'          => null,
+            'maxLength'        => null,
+            'numericPrecision' => null,
+            'numericScale'     => null,
+            'numericUnsigned'  => null,
+        ];
+
+        $desired = new Integer('count');
+        $desired->setOption('unsigned', true);
+
+        self::assertSame([], $this->comparator->compareColumn('stats', $existing, $desired));
+    }
+
+    public function testCompareColumnUsesExplicitTypeOption(): void
+    {
+        $existing = [
+            'name'             => 'status',
+            'type'             => 'enum',
+            'nullable'         => false,
+            'default'          => null,
+            'maxLength'        => null,
+            'numericPrecision' => null,
+            'numericScale'     => null,
+            'numericUnsigned'  => null,
+        ];
+
+        $desired = new Varchar('status', 20);
+        $desired->setOption('type', 'ENUM');
+
+        self::assertSame([], $this->comparator->compareColumn('orders', $existing, $desired));
     }
 
     /**

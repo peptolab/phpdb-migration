@@ -6,12 +6,20 @@ namespace PhpDbTest\Migration;
 
 use Exception;
 use PhpDb\Adapter\AdapterInterface;
+use PhpDb\Adapter\Driver\ResultInterface;
+use PhpDb\Adapter\Driver\StatementInterface;
+use PhpDb\Adapter\Platform\PlatformInterface;
+use PhpDb\Adapter\SchemaAwareInterface;
 use PhpDb\Metadata\MetadataInterface;
 use PhpDb\Metadata\Object\ColumnObject;
 use PhpDb\Metadata\Object\ConstraintObject;
 use PhpDb\Migration\SchemaInspector;
+use PhpDb\Mysql\Metadata\Source as MysqlMetadataSource;
+use PhpDb\ResultSet\ResultSetInterface;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use ReflectionMethod;
+use RuntimeException;
 
 class SchemaInspectorTest extends TestCase
 {
@@ -220,5 +228,103 @@ class SchemaInspectorTest extends TestCase
             ->willReturn([]);
 
         self::assertSame([], $this->inspector->getConstraints('nonexistent'));
+    }
+
+    public function testGetConstraintsReturnsExistingConstraints(): void
+    {
+        $this->metadata->method('getTableNames')->willReturn(['users']);
+
+        $constraint = new ConstraintObject('pk_users', 'users');
+        $this->metadata->method('getConstraints')
+            ->with('users')
+            ->willReturn([$constraint]);
+
+        self::assertSame([$constraint], $this->inspector->getConstraints('users'));
+    }
+
+    public function testMarkTableCreated(): void
+    {
+        $this->metadata->method('getTableNames')->willReturn([]);
+
+        self::assertFalse($this->inspector->tableExists('new_table'));
+
+        $this->inspector->markTableCreated('new_table');
+
+        self::assertTrue($this->inspector->tableExists('new_table'));
+    }
+
+    public function testIndexExistsReturnsTrue(): void
+    {
+        $this->metadata->method('getTableNames')->willReturn(['users']);
+        $this->metadata->method('getConstraints')->willReturn([]);
+        $this->stubShowIndex([['Key_name' => 'idx_users_email']]);
+
+        self::assertTrue($this->inspector->indexExists('users', 'idx_users_email'));
+    }
+
+    public function testIndexExistsReturnsFalseWhenTableMissing(): void
+    {
+        $this->metadata->method('getTableNames')->willReturn([]);
+
+        self::assertFalse($this->inspector->indexExists('users', 'idx_users_email'));
+    }
+
+    public function testIndexExistsReturnsFalseWhenIndexMissing(): void
+    {
+        $this->metadata->method('getTableNames')->willReturn(['users']);
+        $this->metadata->method('getConstraints')->willReturn([]);
+        $this->stubShowIndex([]);
+
+        self::assertFalse($this->inspector->indexExists('users', 'idx_users_missing'));
+    }
+
+    public function testLazilyCreatesMetadataWhenNoneInjectedAndPlatformIsUnsupported(): void
+    {
+        $platform = $this->createMock(PlatformInterface::class);
+        $platform->method('getName')->willReturn('FooBar');
+
+        $adapter = $this->createMock(AdapterInterface::class);
+        $adapter->method('getPlatform')->willReturn($platform);
+
+        $inspector = new SchemaInspector($adapter);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage("Unable to create metadata source for platform 'FooBar'");
+
+        $inspector->tableExists('users');
+    }
+
+    public function testCreateMetadataFromAdapterResolvesMysqlPlatform(): void
+    {
+        $adapter = $this->createMockForIntersectionOfInterfaces([
+            AdapterInterface::class,
+            SchemaAwareInterface::class,
+        ]);
+        $adapter->method('getCurrentSchema')->willReturn('test_schema');
+
+        $platform = $this->createMock(PlatformInterface::class);
+        $platform->method('getName')->willReturn('MySQL');
+        $adapter->method('getPlatform')->willReturn($platform);
+
+        $inspector = new SchemaInspector($adapter);
+
+        $method = new ReflectionMethod(SchemaInspector::class, 'createMetadataFromAdapter');
+        $method->setAccessible(true);
+
+        self::assertInstanceOf(MysqlMetadataSource::class, $method->invoke($inspector));
+    }
+
+    /** @param array<array<string, string>> $rows */
+    private function stubShowIndex(array $rows): void
+    {
+        $this->adapter->method('prepareQuery')->willReturn($this->createMock(StatementInterface::class));
+
+        $resultSet = $this->createMock(ResultSetInterface::class);
+        $resultSet->method('toArray')->willReturn($rows);
+
+        $result = $this->createMock(ResultInterface::class);
+        $result->method('getQueryResult')->willReturn($resultSet);
+
+        $this->adapter->method('executeQuery')->willReturn($result);
     }
 }

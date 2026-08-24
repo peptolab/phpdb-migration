@@ -103,4 +103,49 @@ class TestableMigration extends AbstractMigration
     ): void {
         $this->modifyColumn($tableName, $columnName, $column, $newName);
     }
+
+    /** @param array<string> $columns */
+    public function callEnsureUniqueKey(string $tableName, string $keyName, array $columns): void
+    {
+        $this->ensureUniqueKey($tableName, $keyName, $columns);
+    }
+
+    public function callDropTableIfExists(string $tableName): void
+    {
+        $this->dropTableIfExists($tableName);
+    }
+
+    public function callDropColumnIfExists(string $tableName, string $columnName): void
+    {
+        $this->dropColumnIfExists($tableName, $columnName);
+    }
+
+    public function callExecuteSql(string $sql, ?string $description = null): void
+    {
+        $this->executeSql($sql, $description);
+    }
+
+    public function callExecuteSqlIf(
+        bool $condition,
+        string $sql,
+        ?string $description = null,
+        ?string $skipMessage = null,
+    ): void {
+        $this->executeSqlIf($condition, $sql, $description, $skipMessage);
+    }
+
+    /** @param array<string, mixed> $data */
+    public function callInsertRow(string $tableName, array $data): void
+    {
+        $this->insertRow($tableName, $data);
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     * @param array<string>        $uniqueColumns
+     */
+    public function callInsertRowIfNotExists(string $tableName, array $data, array $uniqueColumns): void
+    {
+        $this->insertRowIfNotExists($tableName, $data, $uniqueColumns);
+    }
 }
