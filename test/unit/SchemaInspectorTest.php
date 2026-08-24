@@ -151,7 +151,6 @@ class SchemaInspectorTest extends TestCase
         $inspector = new SchemaInspector($adapter);
 
         $method = new ReflectionMethod(SchemaInspector::class, 'createMetadataFromAdapter');
-        $method->setAccessible(true);
 
         static::assertInstanceOf(MysqlMetadataSource::class, $method->invoke($inspector));
     }
