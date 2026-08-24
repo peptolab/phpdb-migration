@@ -22,6 +22,7 @@ use PhpDb\Mysql\Sql\Platform as MysqlPlatform;
 use PhpDbTest\Migration\Asset\TestableMigration;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
+use RuntimeException;
 
 use function implode;
 use function str_contains;
@@ -483,6 +484,26 @@ class AbstractMigrationTest extends TestCase
         self::assertEmpty($this->executedQueries);
     }
 
+    public function testUpCatchesExceptionAndReturnsFailedResult(): void
+    {
+        $metadata = $this->createMock(MetadataInterface::class);
+        $metadata->method('getTableNames')->willReturn([]);
+        $adapter = $this->createAdapter();
+        $this->setupQueryCapture($adapter);
+        $inspector = new SchemaInspector($adapter, $metadata);
+
+        $migration = $this->createMigration(function (AbstractMigration $m): void {
+            $m->callExecuteSql('CREATE TABLE placeholder (id INT)', 'Create placeholder');
+            throw new RuntimeException('Something broke mid-migration');
+        });
+
+        $result = $migration->up($adapter, $inspector);
+
+        self::assertTrue($result->isFailed());
+        self::assertSame('Something broke mid-migration', $result->errorMessage);
+        self::assertSame(['Create placeholder'], $result->executedSql);
+    }
+
     public function testCheckIndexDefinitionWithAlterStrategy(): void
     {
         $metadata = $this->createMock(MetadataInterface::class);
@@ -544,6 +565,335 @@ class AbstractMigrationTest extends TestCase
         self::assertNotNull($dropQuery);
         $addQuery = $this->findQuery('FOREIGN KEY');
         self::assertNotNull($addQuery);
+    }
+
+    public function testEnsureTableWithAlterStrategyAltersMismatchedColumn(): void
+    {
+        $metadata = $this->createMock(MetadataInterface::class);
+        $metadata->method('getTableNames')->willReturn(['users']);
+        $col = new ColumnObject('email', 'users');
+        $col->setDataType('varchar');
+        $col->setCharacterMaximumLength(100);
+        $metadata->method('getColumns')->willReturn([$col]);
+        $adapter = $this->createAdapter();
+        $this->setupQueryCapture($adapter);
+        $inspector = new SchemaInspector($adapter, $metadata);
+
+        $migration = $this->createMigration(function (AbstractMigration $m): void {
+            $m->callEnsureTable('users', function (CreateTable $table): void {
+                $table->addColumn(new Column\Varchar('email', 255));
+            });
+        });
+
+        $migration->setMismatchStrategy(MismatchStrategy::Alter);
+        $result = $migration->up($adapter, $inspector);
+
+        self::assertTrue($result->isSuccess());
+        self::assertTrue($result->hasMismatches());
+        $alterQuery = $this->findQuery('CHANGE');
+        self::assertNotNull($alterQuery);
+    }
+
+    public function testEnsureUniqueKeyCreatesNewKey(): void
+    {
+        $metadata = $this->createMock(MetadataInterface::class);
+        $metadata->method('getTableNames')->willReturn(['users']);
+        $metadata->method('getConstraints')->willReturn([]);
+        $adapter = $this->createAdapter();
+        $this->setupQueryCaptureWithShowIndex($adapter);
+        $inspector = new SchemaInspector($adapter, $metadata);
+
+        $migration = $this->createMigration(function (AbstractMigration $m): void {
+            $m->callEnsureUniqueKey('users', 'uk_users_email', ['email']);
+        });
+
+        $result = $migration->up($adapter, $inspector);
+
+        self::assertTrue($result->isSuccess());
+        $ddlQuery = $this->findQuery('UNIQUE');
+        self::assertNotNull($ddlQuery);
+    }
+
+    public function testEnsureUniqueKeySkipsExisting(): void
+    {
+        $metadata = $this->createMock(MetadataInterface::class);
+        $metadata->method('getTableNames')->willReturn(['users']);
+        $constraint = new ConstraintObject('uk_users_email', 'users');
+        $constraint->setType('UNIQUE');
+        $metadata->method('getConstraints')->willReturn([$constraint]);
+        $adapter = $this->createAdapter();
+        $this->setupQueryCaptureWithShowIndex($adapter);
+        $inspector = new SchemaInspector($adapter, $metadata);
+
+        $migration = $this->createMigration(function (AbstractMigration $m): void {
+            $m->callEnsureUniqueKey('users', 'uk_users_email', ['email']);
+        });
+
+        $result = $migration->up($adapter, $inspector);
+
+        self::assertTrue($result->isSkipped());
+    }
+
+    public function testEnsureUniqueKeySkipsMissingTable(): void
+    {
+        $metadata = $this->createMock(MetadataInterface::class);
+        $metadata->method('getTableNames')->willReturn([]);
+        $adapter = $this->createAdapter();
+        $this->setupQueryCaptureWithShowIndex($adapter);
+        $inspector = new SchemaInspector($adapter, $metadata);
+
+        $migration = $this->createMigration(function (AbstractMigration $m): void {
+            $m->callEnsureUniqueKey('users', 'uk_users_email', ['email']);
+        });
+
+        $result = $migration->up($adapter, $inspector);
+
+        self::assertTrue($result->isSkipped());
+    }
+
+    public function testDropTableIfExistsDropsExistingTable(): void
+    {
+        $metadata = $this->createMock(MetadataInterface::class);
+        $metadata->method('getTableNames')->willReturn(['users']);
+        $adapter = $this->createAdapter();
+        $this->setupQueryCapture($adapter);
+        $inspector = new SchemaInspector($adapter, $metadata);
+
+        $migration = $this->createMigration(function (AbstractMigration $m): void {
+            $m->callDropTableIfExists('users');
+        });
+
+        $result = $migration->up($adapter, $inspector);
+
+        self::assertTrue($result->isSuccess());
+        $dropQuery = $this->findQuery('DROP TABLE');
+        self::assertNotNull($dropQuery);
+    }
+
+    public function testDropTableIfExistsSkipsMissing(): void
+    {
+        $metadata = $this->createMock(MetadataInterface::class);
+        $metadata->method('getTableNames')->willReturn([]);
+        $adapter = $this->createAdapter();
+        $this->setupQueryCapture($adapter);
+        $inspector = new SchemaInspector($adapter, $metadata);
+
+        $migration = $this->createMigration(function (AbstractMigration $m): void {
+            $m->callDropTableIfExists('users');
+        });
+
+        $result = $migration->up($adapter, $inspector);
+
+        self::assertTrue($result->isSkipped());
+        self::assertEmpty($this->executedQueries);
+    }
+
+    public function testDropColumnIfExistsDropsExistingColumn(): void
+    {
+        $metadata = $this->createMock(MetadataInterface::class);
+        $metadata->method('getTableNames')->willReturn(['users']);
+        $col = new ColumnObject('nickname', 'users');
+        $col->setDataType('varchar');
+        $metadata->method('getColumns')->willReturn([$col]);
+        $adapter = $this->createAdapter();
+        $this->setupQueryCapture($adapter);
+        $inspector = new SchemaInspector($adapter, $metadata);
+
+        $migration = $this->createMigration(function (AbstractMigration $m): void {
+            $m->callDropColumnIfExists('users', 'nickname');
+        });
+
+        $result = $migration->up($adapter, $inspector);
+
+        self::assertTrue($result->isSuccess());
+        $dropQuery = $this->findQuery('DROP COLUMN');
+        self::assertNotNull($dropQuery);
+    }
+
+    public function testDropColumnIfExistsSkipsMissingTable(): void
+    {
+        $metadata = $this->createMock(MetadataInterface::class);
+        $metadata->method('getTableNames')->willReturn([]);
+        $adapter = $this->createAdapter();
+        $this->setupQueryCapture($adapter);
+        $inspector = new SchemaInspector($adapter, $metadata);
+
+        $migration = $this->createMigration(function (AbstractMigration $m): void {
+            $m->callDropColumnIfExists('users', 'nickname');
+        });
+
+        $result = $migration->up($adapter, $inspector);
+
+        self::assertTrue($result->isSkipped());
+    }
+
+    public function testDropColumnIfExistsSkipsMissingColumn(): void
+    {
+        $metadata = $this->createMock(MetadataInterface::class);
+        $metadata->method('getTableNames')->willReturn(['users']);
+        $metadata->method('getColumns')->willReturn([]);
+        $adapter = $this->createAdapter();
+        $this->setupQueryCapture($adapter);
+        $inspector = new SchemaInspector($adapter, $metadata);
+
+        $migration = $this->createMigration(function (AbstractMigration $m): void {
+            $m->callDropColumnIfExists('users', 'nickname');
+        });
+
+        $result = $migration->up($adapter, $inspector);
+
+        self::assertTrue($result->isSkipped());
+        self::assertEmpty($this->executedQueries);
+    }
+
+    public function testExecuteSqlIfRunsWhenConditionTrue(): void
+    {
+        $metadata  = $this->createMock(MetadataInterface::class);
+        $adapter   = $this->createAdapter();
+        $this->setupQueryCapture($adapter);
+        $inspector = new SchemaInspector($adapter, $metadata);
+
+        $migration = $this->createMigration(function (AbstractMigration $m): void {
+            $m->callExecuteSqlIf(true, 'UPDATE users SET active = 1', 'Activate users');
+        });
+
+        $result = $migration->up($adapter, $inspector);
+
+        self::assertTrue($result->isSuccess());
+        self::assertSame(['Activate users'], $result->executedSql);
+    }
+
+    public function testExecuteSqlIfSkipsWithMessageWhenConditionFalse(): void
+    {
+        $metadata  = $this->createMock(MetadataInterface::class);
+        $adapter   = $this->createAdapter();
+        $this->setupQueryCapture($adapter);
+        $inspector = new SchemaInspector($adapter, $metadata);
+
+        $migration = $this->createMigration(function (AbstractMigration $m): void {
+            $m->callExecuteSqlIf(false, 'UPDATE users SET active = 1', 'Activate users', 'Already active');
+        });
+
+        $result = $migration->up($adapter, $inspector);
+
+        self::assertTrue($result->isSkipped());
+        self::assertSame(['Already active'], $result->skippedOperations);
+        self::assertEmpty($this->executedQueries);
+    }
+
+    public function testExecuteSqlIfSkipsSilentlyWithoutSkipMessage(): void
+    {
+        $metadata  = $this->createMock(MetadataInterface::class);
+        $adapter   = $this->createAdapter();
+        $this->setupQueryCapture($adapter);
+        $inspector = new SchemaInspector($adapter, $metadata);
+
+        $migration = $this->createMigration(function (AbstractMigration $m): void {
+            $m->callExecuteSqlIf(false, 'UPDATE users SET active = 1');
+        });
+
+        $result = $migration->up($adapter, $inspector);
+
+        self::assertTrue($result->isSuccess());
+        self::assertSame([], $result->skippedOperations);
+        self::assertEmpty($this->executedQueries);
+    }
+
+    public function testInsertRowInsertsData(): void
+    {
+        $metadata  = $this->createMock(MetadataInterface::class);
+        $adapter   = $this->createAdapter();
+        $this->setupQueryCapture($adapter);
+        $inspector = new SchemaInspector($adapter, $metadata);
+
+        $migration = $this->createMigration(function (AbstractMigration $m): void {
+            $m->callInsertRow('roles', ['name' => 'admin']);
+        });
+
+        $result = $migration->up($adapter, $inspector);
+
+        self::assertTrue($result->isSuccess());
+        $insertQuery = $this->findQuery('INSERT INTO');
+        self::assertNotNull($insertQuery);
+    }
+
+    public function testInsertRowIfNotExistsInsertsWhenNoMatch(): void
+    {
+        $metadata  = $this->createMock(MetadataInterface::class);
+        $adapter   = $this->createAdapter();
+        $this->setupQueryCapture($adapter);
+        $inspector = new SchemaInspector($adapter, $metadata);
+
+        $migration = $this->createMigration(function (AbstractMigration $m): void {
+            $m->callInsertRowIfNotExists('roles', ['name' => 'admin'], ['name']);
+        });
+
+        $result = $migration->up($adapter, $inspector);
+
+        self::assertTrue($result->isSuccess());
+        $insertQuery = $this->findQuery('INSERT INTO');
+        self::assertNotNull($insertQuery);
+    }
+
+    public function testInsertRowIfNotExistsSkipsWhenMatchExists(): void
+    {
+        $metadata = $this->createMock(MetadataInterface::class);
+        $adapter  = $this->createAdapter();
+
+        $existingRow = $this->createMock(ResultSetInterface::class);
+        $existingRow->method('current')->willReturn(['cnt' => 1]);
+        $result = $this->createMock(ResultInterface::class);
+        $result->method('getQueryResult')->willReturn($existingRow);
+        $adapter->method('prepareQuery')->willReturn($this->createMock(StatementInterface::class));
+        $adapter->method('executeQuery')->willReturn($result);
+
+        $inspector = new SchemaInspector($adapter, $metadata);
+
+        $migration = $this->createMigration(function (AbstractMigration $m): void {
+            $m->callInsertRowIfNotExists('roles', ['name' => 'admin'], ['name']);
+        });
+
+        $migrationResult = $migration->up($adapter, $inspector);
+
+        self::assertTrue($migrationResult->isSkipped());
+        self::assertSame(['Row in "roles" already exists (unique: name)'], $migrationResult->skippedOperations);
+    }
+
+    public function testInsertRowIfNotExistsFallsBackToInsertRowWhenUniqueColumnsAbsentFromData(): void
+    {
+        $metadata  = $this->createMock(MetadataInterface::class);
+        $adapter   = $this->createAdapter();
+        $this->setupQueryCapture($adapter);
+        $inspector = new SchemaInspector($adapter, $metadata);
+
+        $migration = $this->createMigration(function (AbstractMigration $m): void {
+            $m->callInsertRowIfNotExists('roles', ['name' => 'admin'], ['nonexistent_key']);
+        });
+
+        $result = $migration->up($adapter, $inspector);
+
+        self::assertTrue($result->isSuccess());
+        $insertQuery = $this->findQuery('INSERT INTO');
+        self::assertNotNull($insertQuery);
+        self::assertNull($this->findQuery('SELECT COUNT'));
+    }
+
+    public function testInsertRowIfNotExistsPreviewMode(): void
+    {
+        $metadata  = $this->createMock(MetadataInterface::class);
+        $adapter   = $this->createAdapter();
+        $this->setupQueryCapture($adapter);
+        $inspector = new SchemaInspector($adapter, $metadata);
+
+        $migration = $this->createMigration(function (AbstractMigration $m): void {
+            $m->callInsertRowIfNotExists('roles', ['name' => 'admin'], ['name']);
+        });
+
+        $preview = $migration->preview($adapter, $inspector);
+
+        self::assertCount(1, $preview);
+        self::assertStringContainsString('IF NOT EXISTS', $preview[0]);
+        self::assertEmpty($this->executedQueries);
     }
 
     private function createAdapter(): AdapterInterface&MockObject
