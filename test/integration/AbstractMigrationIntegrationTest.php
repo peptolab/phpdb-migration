@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace PhpDbTest\Migration\Integration;
+namespace PhpDbIntegrationTest\Migration;
 
 use PhpDb\Migration\AbstractMigration;
 use PhpDb\Migration\SchemaInspector;

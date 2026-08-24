@@ -126,7 +126,7 @@ class MigrationRunnerTest extends TestCase
     {
         return new MigrationRunner(
             adapter: $this->adapter,
-            migrationsPath: __DIR__ . '/Asset',
+            migrationsPath: __DIR__ . '/../asset',
             migrationsNamespace: 'PhpDbTest\\Migration\\Asset',
             metadata: $this->metadata,
         );

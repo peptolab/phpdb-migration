@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace PhpDbTest\Migration\Integration;
+namespace PhpDbIntegrationTest\Migration;
 
 use PhpDb\Migration\AbstractMigration;
 use PhpDb\Migration\MigrationInterface;
@@ -182,7 +182,7 @@ class MigrationRunnerIntegrationTest extends AbstractIntegrationTestCase
     {
         return new MigrationRunner(
             adapter: $this->adapter,
-            migrationsPath: __DIR__ . '/../Asset',
+            migrationsPath: __DIR__ . '/../asset',
             migrationsNamespace: 'PhpDbTest\\Migration\\Asset',
         );
     }
