@@ -9,11 +9,15 @@ use PhpDb\Adapter\AdapterInterface;
 use PhpDb\Metadata\MetadataInterface;
 use PhpDb\Metadata\Object\ConstraintObject;
 use RuntimeException;
+use Throwable;
 
 use function array_key_exists;
 use function call_user_func;
 use function class_exists;
 use function in_array;
+use function str_starts_with;
+use function strlen;
+use function substr;
 
 /**
  * Schema introspection wrapper with caching.
@@ -51,19 +55,27 @@ class SchemaInspector
     }
 
     /**
-     * Check if a table exists.
+     * Clear all cached data.
+     *
+     * Call this between migrations to ensure fresh schema state.
+     * Creates a fresh metadata instance to avoid stale internal caches
+     * in the underlying metadata source (which caches table/column lists
+     * with no public cache-clearing API). Falls back to the injected
+     * metadata when a fresh instance cannot be created (e.g., in tests).
      */
-    public function tableExists(string $tableName): bool
+    public function clearCache(): void
     {
-        if (array_key_exists($tableName, $this->tableCache)) {
-            return $this->tableCache[$tableName];
+        $this->tableCache         = [];
+        $this->columnCache        = [];
+        $this->indexCache         = [];
+        $this->constraintCache    = [];
+        $this->columnDetailsCache = [];
+
+        try {
+            $this->metadata = $this->createMetadataFromAdapter();
+        } catch (Throwable) {
+            $this->metadata = $this->injectedMetadata;
         }
-
-        $tables                       = $this->getMetadata()->getTableNames();
-        $exists                       = in_array($tableName, $tables, true);
-        $this->tableCache[$tableName] = $exists;
-
-        return $exists;
     }
 
     /**
@@ -82,24 +94,6 @@ class SchemaInspector
         $this->loadColumnCache($tableName);
 
         return $this->columnCache[$tableName][$columnName] ?? false;
-    }
-
-    /**
-     * Check if an index exists on a table.
-     */
-    public function indexExists(string $tableName, string $indexName): bool
-    {
-        if (! $this->tableExists($tableName)) {
-            return false;
-        }
-
-        if (isset($this->indexCache[$tableName][$indexName])) {
-            return $this->indexCache[$tableName][$indexName];
-        }
-
-        $this->loadConstraintCache($tableName);
-
-        return $this->indexCache[$tableName][$indexName] ?? false;
     }
 
     /**
@@ -131,6 +125,26 @@ class SchemaInspector
     }
 
     /**
+     * Get the underlying adapter.
+     */
+    public function getAdapter(): AdapterInterface
+    {
+        return $this->adapter;
+    }
+
+    /**
+     * Get column details.
+     *
+     * @return array<string, mixed>|null Column details or null if not found
+     */
+    public function getColumn(string $tableName, string $columnName): ?array
+    {
+        $columns = $this->getColumns($tableName);
+
+        return $columns[$columnName] ?? null;
+    }
+
+    /**
      * Get all columns for a table.
      *
      * @return array<string, array<string, mixed>> Column name => column details
@@ -144,18 +158,6 @@ class SchemaInspector
         $this->loadColumnCache($tableName);
 
         return $this->columnDetailsCache[$tableName] ?? [];
-    }
-
-    /**
-     * Get column details.
-     *
-     * @return array<string, mixed>|null Column details or null if not found
-     */
-    public function getColumn(string $tableName, string $columnName): ?array
-    {
-        $columns = $this->getColumns($tableName);
-
-        return $columns[$columnName] ?? null;
     }
 
     /**
@@ -183,27 +185,21 @@ class SchemaInspector
     }
 
     /**
-     * Clear all cached data.
-     *
-     * Call this between migrations to ensure fresh schema state.
-     * Creates a fresh metadata instance to avoid stale internal caches
-     * in the underlying metadata source (which caches table/column lists
-     * with no public cache-clearing API). Falls back to the injected
-     * metadata when a fresh instance cannot be created (e.g., in tests).
+     * Check if an index exists on a table.
      */
-    public function clearCache(): void
+    public function indexExists(string $tableName, string $indexName): bool
     {
-        $this->tableCache         = [];
-        $this->columnCache        = [];
-        $this->indexCache         = [];
-        $this->constraintCache    = [];
-        $this->columnDetailsCache = [];
-
-        try {
-            $this->metadata = $this->createMetadataFromAdapter();
-        } catch (\Throwable) {
-            $this->metadata = $this->injectedMetadata;
+        if (! $this->tableExists($tableName)) {
+            return false;
         }
+
+        if (isset($this->indexCache[$tableName][$indexName])) {
+            return $this->indexCache[$tableName][$indexName];
+        }
+
+        $this->loadConstraintCache($tableName);
+
+        return $this->indexCache[$tableName][$indexName] ?? false;
     }
 
     /**
@@ -219,20 +215,19 @@ class SchemaInspector
     }
 
     /**
-     * Get the underlying adapter.
+     * Check if a table exists.
      */
-    public function getAdapter(): AdapterInterface
+    public function tableExists(string $tableName): bool
     {
-        return $this->adapter;
-    }
-
-    private function getMetadata(): MetadataInterface
-    {
-        if ($this->metadata === null) {
-            $this->metadata = $this->createMetadataFromAdapter();
+        if (array_key_exists($tableName, $this->tableCache)) {
+            return $this->tableCache[$tableName];
         }
 
-        return $this->metadata;
+        $tables                       = $this->getMetadata()->getTableNames();
+        $exists                       = in_array($tableName, $tables, true);
+        $this->tableCache[$tableName] = $exists;
+
+        return $exists;
     }
 
     /**
@@ -246,12 +241,10 @@ class SchemaInspector
         // Try the Factory class first (available in some php-db/phpdb versions)
         if (class_exists('PhpDb\Metadata\Source\Factory')) {
             /** @var MetadataInterface $metadata */
-            $metadata = call_user_func(
+            return call_user_func(
                 ['PhpDb\Metadata\Source\Factory', 'createSourceFromAdapter'],
                 $this->adapter,
             );
-
-            return $metadata;
         }
 
         // Fallback: resolve the platform-specific metadata source directly
@@ -268,17 +261,26 @@ class SchemaInspector
 
         $sourceClass = $sourceMap[$platformName] ?? null;
 
-        if ($sourceClass !== null && class_exists($sourceClass)) {
+        if (null !== $sourceClass && class_exists($sourceClass)) {
             /** @var MetadataInterface $source */
-            $source = new $sourceClass($this->adapter); // @phpstan-ignore varTag.nativeType, argument.type
+            // @phpstan-ignore varTag.nativeType, argument.type
 
-            return $source;
+            return new $sourceClass($this->adapter);
         }
 
         throw new RuntimeException(
             "Unable to create metadata source for platform '{$platformName}'. "
-            . 'Provide a MetadataInterface implementation via the SchemaInspector constructor.',
+                . 'Provide a MetadataInterface implementation via the SchemaInspector constructor.',
         );
+    }
+
+    private function getMetadata(): MetadataInterface
+    {
+        if (null === $this->metadata) {
+            $this->metadata = $this->createMetadataFromAdapter();
+        }
+
+        return $this->metadata;
     }
 
     private function loadColumnCache(string $tableName): void
@@ -325,6 +327,16 @@ class SchemaInspector
             $type = $constraint->getType();
 
             $this->constraintCache[$tableName][$name] = true;
+
+            // Some metadata sources (e.g. php-db/phpdb-mysql) synthesize
+            // non-foreign-key constraint names as "_laminas_{table}_{name}"
+            // internally. Also register the un-prefixed name so lookups by
+            // the name a migration actually declared (e.g. via
+            // ensureUniqueKey()/ensureCheckConstraint()) still resolve.
+            $syntheticPrefix = "_laminas_{$tableName}_";
+            if (str_starts_with($name, $syntheticPrefix)) {
+                $this->constraintCache[$tableName][substr($name, strlen($syntheticPrefix))] = true;
+            }
 
             // Also track as index for unique constraints and primary keys
             if (in_array($type, ['PRIMARY KEY', 'UNIQUE'], true)) {

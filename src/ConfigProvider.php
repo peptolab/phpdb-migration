@@ -11,12 +11,14 @@ use PhpDb\Migration\Command\DbMigrateCreateCommandFactory;
 
 class ConfigProvider
 {
-    /** @return array<string, mixed> */
-    public function __invoke(): array
+    /** @return array<string, array<string, string>> */
+    public function getCliConfig(): array
     {
         return [
-            'dependencies' => $this->getDependencies(),
-            'laminas-cli'  => $this->getCliConfig(),
+            'commands' => [
+                'db:migrate'        => DbMigrateCommand::class,
+                'db:migrate:create' => DbMigrateCreateCommand::class,
+            ],
         ];
     }
 
@@ -32,14 +34,12 @@ class ConfigProvider
         ];
     }
 
-    /** @return array<string, array<string, string>> */
-    public function getCliConfig(): array
+    /** @return array<string, mixed> */
+    public function __invoke(): array
     {
         return [
-            'commands' => [
-                'db:migrate'        => DbMigrateCommand::class,
-                'db:migrate:create' => DbMigrateCreateCommand::class,
-            ],
+            'dependencies' => $this->getDependencies(),
+            'laminas-cli'  => $this->getCliConfig(),
         ];
     }
 }

@@ -5,66 +5,35 @@ declare(strict_types=1);
 namespace PhpDbTest\Migration;
 
 use PhpDb\Migration\MigrationResult;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 class MigrationResultTest extends TestCase
 {
-    public function testSuccessFactory(): void
-    {
-        $result = MigrationResult::success(['CREATE TABLE test'], ['Skipped op']);
-
-        self::assertTrue($result->isSuccess());
-        self::assertFalse($result->isSkipped());
-        self::assertFalse($result->isFailed());
-        self::assertTrue($result->hasChanges());
-        self::assertSame(MigrationResult::STATUS_SUCCESS, $result->status);
-        self::assertSame(['CREATE TABLE test'], $result->executedSql);
-        self::assertSame(['Skipped op'], $result->skippedOperations);
-        self::assertNull($result->errorMessage);
-    }
-
-    public function testSuccessWithoutChanges(): void
-    {
-        $result = MigrationResult::success();
-
-        self::assertTrue($result->isSuccess());
-        self::assertFalse($result->hasChanges());
-        self::assertSame([], $result->executedSql);
-    }
-
-    public function testSkippedFactory(): void
-    {
-        $result = MigrationResult::skipped(['Already exists']);
-
-        self::assertTrue($result->isSkipped());
-        self::assertFalse($result->isSuccess());
-        self::assertFalse($result->isFailed());
-        self::assertFalse($result->hasChanges());
-        self::assertSame(['Already exists'], $result->skippedOperations);
-        self::assertSame([], $result->executedSql);
-    }
-
-    public function testFailedFactory(): void
+    #[Test]
+    public function failedFactory(): void
     {
         $result = MigrationResult::failed('Something went wrong', ['partial SQL']);
 
-        self::assertTrue($result->isFailed());
-        self::assertFalse($result->isSuccess());
-        self::assertFalse($result->isSkipped());
-        self::assertTrue($result->hasChanges());
-        self::assertSame('Something went wrong', $result->errorMessage);
-        self::assertSame(['partial SQL'], $result->executedSql);
+        static::assertTrue($result->isFailed());
+        static::assertFalse($result->isSuccess());
+        static::assertFalse($result->isSkipped());
+        static::assertTrue($result->hasChanges());
+        static::assertSame('Something went wrong', $result->errorMessage);
+        static::assertSame(['partial SQL'], $result->executedSql);
     }
 
-    public function testFailedWithoutPriorSql(): void
+    #[Test]
+    public function failedWithoutPriorSql(): void
     {
         $result = MigrationResult::failed('Error');
 
-        self::assertTrue($result->isFailed());
-        self::assertFalse($result->hasChanges());
+        static::assertTrue($result->isFailed());
+        static::assertFalse($result->hasChanges());
     }
 
-    public function testHasMismatchesWithMismatches(): void
+    #[Test]
+    public function hasMismatchesWithMismatches(): void
     {
         $mismatches = [
             [
@@ -78,21 +47,36 @@ class MigrationResultTest extends TestCase
 
         $result = MigrationResult::success([], [], $mismatches);
 
-        self::assertTrue($result->hasMismatches());
-        self::assertCount(1, $result->mismatches);
-        self::assertSame('users', $result->mismatches[0]['table']);
-        self::assertSame('email', $result->mismatches[0]['column']);
+        static::assertTrue($result->hasMismatches());
+        static::assertCount(1, $result->mismatches);
+        static::assertSame('users', $result->mismatches[0]['table']);
+        static::assertSame('email', $result->mismatches[0]['column']);
     }
 
-    public function testHasMismatchesWithoutMismatches(): void
+    #[Test]
+    public function hasMismatchesWithoutMismatches(): void
     {
         $result = MigrationResult::success();
 
-        self::assertFalse($result->hasMismatches());
-        self::assertSame([], $result->mismatches);
+        static::assertFalse($result->hasMismatches());
+        static::assertSame([], $result->mismatches);
     }
 
-    public function testSkippedWithMismatches(): void
+    #[Test]
+    public function skippedFactory(): void
+    {
+        $result = MigrationResult::skipped(['Already exists']);
+
+        static::assertTrue($result->isSkipped());
+        static::assertFalse($result->isSuccess());
+        static::assertFalse($result->isFailed());
+        static::assertFalse($result->hasChanges());
+        static::assertSame(['Already exists'], $result->skippedOperations);
+        static::assertSame([], $result->executedSql);
+    }
+
+    #[Test]
+    public function skippedWithMismatches(): void
     {
         $mismatches = [
             [
@@ -106,15 +90,41 @@ class MigrationResultTest extends TestCase
 
         $result = MigrationResult::skipped(['Table already exists'], $mismatches);
 
-        self::assertTrue($result->isSkipped());
-        self::assertTrue($result->hasMismatches());
-        self::assertCount(1, $result->mismatches);
+        static::assertTrue($result->isSkipped());
+        static::assertTrue($result->hasMismatches());
+        static::assertCount(1, $result->mismatches);
     }
 
-    public function testStatusConstants(): void
+    #[Test]
+    public function statusConstants(): void
     {
-        self::assertSame('success', MigrationResult::STATUS_SUCCESS);
-        self::assertSame('skipped', MigrationResult::STATUS_SKIPPED);
-        self::assertSame('failed', MigrationResult::STATUS_FAILED);
+        static::assertSame('success', MigrationResult::STATUS_SUCCESS);
+        static::assertSame('skipped', MigrationResult::STATUS_SKIPPED);
+        static::assertSame('failed', MigrationResult::STATUS_FAILED);
+    }
+
+    #[Test]
+    public function successFactory(): void
+    {
+        $result = MigrationResult::success(['CREATE TABLE test'], ['Skipped op']);
+
+        static::assertTrue($result->isSuccess());
+        static::assertFalse($result->isSkipped());
+        static::assertFalse($result->isFailed());
+        static::assertTrue($result->hasChanges());
+        static::assertSame(MigrationResult::STATUS_SUCCESS, $result->status);
+        static::assertSame(['CREATE TABLE test'], $result->executedSql);
+        static::assertSame(['Skipped op'], $result->skippedOperations);
+        static::assertNull($result->errorMessage);
+    }
+
+    #[Test]
+    public function successWithoutChanges(): void
+    {
+        $result = MigrationResult::success();
+
+        static::assertTrue($result->isSuccess());
+        static::assertFalse($result->hasChanges());
+        static::assertSame([], $result->executedSql);
     }
 }

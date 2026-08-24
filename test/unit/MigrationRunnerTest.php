@@ -13,8 +13,9 @@ use PhpDb\Metadata\MetadataInterface;
 use PhpDb\Migration\MigrationInterface;
 use PhpDb\Migration\MigrationResult;
 use PhpDb\Migration\MigrationRunner;
-use PhpDb\ResultSet\ResultSetInterface;
 use PhpDb\Mysql\Sql\Platform as MysqlPlatform;
+use PhpDb\ResultSet\ResultSetInterface;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
@@ -25,6 +26,94 @@ class MigrationRunnerTest extends TestCase
 {
     private AdapterInterface&MockObject $adapter;
     private MetadataInterface&MockObject $metadata;
+
+    #[Test]
+    public function ensureMigrationsTableUsesIfNotExists(): void
+    {
+        $this->metadata->method('getTableNames')->willReturn([]);
+
+        $capturedSql = null;
+        $this->adapter
+            ->method('prepareQuery')
+            ->willReturnCallback(function (string $sql) use (&$capturedSql) {
+                $capturedSql = $sql;
+                return $this->createMock(StatementInterface::class);
+            });
+        $this->adapter->method('executeQuery')->willReturn($this->createResult());
+
+        $runner = $this->createRunner();
+        $runner->ensureMigrationsTable();
+
+        static::assertNotNull($capturedSql);
+        static::assertStringContainsString('CREATE TABLE IF NOT EXISTS', $capturedSql);
+    }
+
+    #[Test]
+    public function runMigrationReturnsFailedOnException(): void
+    {
+        $this->metadata->method('getTableNames')->willReturn(['migrations']);
+        $this->setupEmptyAppliedVersions();
+
+        $migration = $this->createMock(MigrationInterface::class);
+        $migration->method('getVersion')->willReturn('20260201000000');
+        $migration->method('getDescription')->willReturn('Exception migration');
+        $migration->method('up')->willThrowException(new RuntimeException('DB error'));
+
+        $runner = $this->createRunner();
+        $result = $runner->runMigration($migration);
+
+        static::assertTrue($result['result']->isFailed());
+        static::assertSame('DB error', $result['result']->errorMessage);
+    }
+
+    #[Test]
+    public function runMigrationReturnsFailedResult(): void
+    {
+        $this->metadata->method('getTableNames')->willReturn(['migrations']);
+        $this->setupEmptyAppliedVersions();
+
+        $migration = $this->createFailedMigration('20260201000000', 'Failing migration');
+
+        $runner = $this->createRunner();
+        $result = $runner->runMigration($migration);
+
+        static::assertTrue($result['result']->isFailed());
+    }
+
+    #[Test]
+    public function runMigrationReturnsSuccessResult(): void
+    {
+        $this->metadata->method('getTableNames')->willReturn(['migrations']);
+        $this->setupEmptyAppliedVersions();
+
+        $migration = $this->createSuccessfulMigration('20260201000000', 'Test migration');
+
+        $runner = $this->createRunner();
+        $result = $runner->runMigration($migration);
+
+        static::assertSame('20260201000000', $result['version']);
+        static::assertTrue($result['result']->isSuccess());
+    }
+
+    #[Test]
+    public function skippedMigrationIsNotReRun(): void
+    {
+        $this->metadata->method('getTableNames')->willReturn(['migrations']);
+
+        $this->adapter->method('prepareQuery')->willReturn($this->createMock(StatementInterface::class));
+        $this->adapter
+            ->method('executeQuery')
+            ->willReturn($this->createResult([
+                ['version' => '20260201000000'],
+            ]));
+
+        $migration = $this->createSuccessfulMigration('20260201000000', 'Already applied');
+
+        $runner = $this->createRunner();
+        $result = $runner->runMigration($migration);
+
+        static::assertTrue($result['result']->isSkipped());
+    }
 
     protected function setUp(): void
     {
@@ -39,89 +128,36 @@ class MigrationRunnerTest extends TestCase
         $this->adapter->method('getDriver')->willReturn($driver);
         $platform->method('getSqlPlatformDecorator')->willReturn($sqlPlatformDecorator);
         $platform->method('quoteIdentifier')
-            ->willReturnCallback(fn (string $id): string => '`' . $id . '`');
+            ->willReturnCallback(static fn(string $id): string => "`{$id}`");
         $platform->method('quoteIdentifierChain')
-            ->willReturnCallback(fn (array $ids): string => '`' . implode('`.`', $ids) . '`');
+            ->willReturnCallback(static fn(array $ids): string => '`' . implode('`.`', $ids) . '`');
     }
 
-    public function testEnsureMigrationsTableUsesIfNotExists(): void
+    private function createFailedMigration(string $version, string $description): MigrationInterface&MockObject
     {
-        $this->metadata->method('getTableNames')->willReturn([]);
-
-        $capturedSql = null;
-        $this->adapter->method('prepareQuery')
-            ->willReturnCallback(function (string $sql) use (&$capturedSql) {
-                $capturedSql = $sql;
-                return $this->createMock(StatementInterface::class);
-            });
-        $this->adapter->method('executeQuery')->willReturn($this->createResult());
-
-        $runner = $this->createRunner();
-        $runner->ensureMigrationsTable();
-
-        self::assertNotNull($capturedSql);
-        self::assertStringContainsString('CREATE TABLE IF NOT EXISTS', $capturedSql);
-    }
-
-    public function testRunMigrationReturnsSuccessResult(): void
-    {
-        $this->metadata->method('getTableNames')->willReturn(['migrations']);
-        $this->setupEmptyAppliedVersions();
-
-        $migration = $this->createSuccessfulMigration('20260201000000', 'Test migration');
-
-        $runner = $this->createRunner();
-        $result = $runner->runMigration($migration);
-
-        self::assertSame('20260201000000', $result['version']);
-        self::assertTrue($result['result']->isSuccess());
-    }
-
-    public function testRunMigrationReturnsFailedResult(): void
-    {
-        $this->metadata->method('getTableNames')->willReturn(['migrations']);
-        $this->setupEmptyAppliedVersions();
-
-        $migration = $this->createFailedMigration('20260201000000', 'Failing migration');
-
-        $runner = $this->createRunner();
-        $result = $runner->runMigration($migration);
-
-        self::assertTrue($result['result']->isFailed());
-    }
-
-    public function testRunMigrationReturnsFailedOnException(): void
-    {
-        $this->metadata->method('getTableNames')->willReturn(['migrations']);
-        $this->setupEmptyAppliedVersions();
-
         $migration = $this->createMock(MigrationInterface::class);
-        $migration->method('getVersion')->willReturn('20260201000000');
-        $migration->method('getDescription')->willReturn('Exception migration');
-        $migration->method('up')->willThrowException(new RuntimeException('DB error'));
+        $migration->method('getVersion')->willReturn($version);
+        $migration->method('getDescription')->willReturn($description);
+        $migration->method('up')->willReturn(MigrationResult::failed('Migration failed'));
 
-        $runner = $this->createRunner();
-        $result = $runner->runMigration($migration);
-
-        self::assertTrue($result['result']->isFailed());
-        self::assertSame('DB error', $result['result']->errorMessage);
+        return $migration;
     }
 
-    public function testSkippedMigrationIsNotReRun(): void
+    /** @param array<array<string, mixed>> $rows */
+    private function createResult(array $rows = []): ResultInterface&MockObject
     {
-        $this->metadata->method('getTableNames')->willReturn(['migrations']);
+        $result = $this->createMock(ResultInterface::class);
+        $result->method('getQueryResult')->willReturn($this->createResultSet($rows));
 
-        $this->adapter->method('prepareQuery')->willReturn($this->createMock(StatementInterface::class));
-        $this->adapter->method('executeQuery')->willReturn($this->createResult([
-            ['version' => '20260201000000'],
-        ]));
+        return $result;
+    }
 
-        $migration = $this->createSuccessfulMigration('20260201000000', 'Already applied');
+    private function createResultSet(array $rows = []): ResultSetInterface&MockObject
+    {
+        $resultSet = $this->createMock(ResultSetInterface::class);
+        $resultSet->method('toArray')->willReturn($rows);
 
-        $runner = $this->createRunner();
-        $result = $runner->runMigration($migration);
-
-        self::assertTrue($result['result']->isSkipped());
+        return $resultSet;
     }
 
     private function createRunner(): MigrationRunner
@@ -134,29 +170,6 @@ class MigrationRunnerTest extends TestCase
         );
     }
 
-    private function createResultSet(array $rows = []): ResultSetInterface&MockObject
-    {
-        $resultSet = $this->createMock(ResultSetInterface::class);
-        $resultSet->method('toArray')->willReturn($rows);
-
-        return $resultSet;
-    }
-
-    /** @param array<array<string, mixed>> $rows */
-    private function createResult(array $rows = []): ResultInterface&MockObject
-    {
-        $result = $this->createMock(ResultInterface::class);
-        $result->method('getQueryResult')->willReturn($this->createResultSet($rows));
-
-        return $result;
-    }
-
-    private function setupEmptyAppliedVersions(): void
-    {
-        $this->adapter->method('prepareQuery')->willReturn($this->createMock(StatementInterface::class));
-        $this->adapter->method('executeQuery')->willReturn($this->createResult());
-    }
-
     private function createSuccessfulMigration(string $version, string $description): MigrationInterface&MockObject
     {
         $migration = $this->createMock(MigrationInterface::class);
@@ -167,13 +180,9 @@ class MigrationRunnerTest extends TestCase
         return $migration;
     }
 
-    private function createFailedMigration(string $version, string $description): MigrationInterface&MockObject
+    private function setupEmptyAppliedVersions(): void
     {
-        $migration = $this->createMock(MigrationInterface::class);
-        $migration->method('getVersion')->willReturn($version);
-        $migration->method('getDescription')->willReturn($description);
-        $migration->method('up')->willReturn(MigrationResult::failed('Migration failed'));
-
-        return $migration;
+        $this->adapter->method('prepareQuery')->willReturn($this->createMock(StatementInterface::class));
+        $this->adapter->method('executeQuery')->willReturn($this->createResult());
     }
 }

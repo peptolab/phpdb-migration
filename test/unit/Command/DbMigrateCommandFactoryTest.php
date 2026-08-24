@@ -7,12 +7,14 @@ namespace PhpDbTest\Migration\Command;
 use PhpDb\Migration\Command\DbMigrateCommand;
 use PhpDb\Migration\Command\DbMigrateCommandFactory;
 use PhpDb\Migration\MigrationRunner;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
 
 class DbMigrateCommandFactoryTest extends TestCase
 {
-    public function testInvokeBuildsCommandFromContainer(): void
+    #[Test]
+    public function invokeBuildsCommandFromContainer(): void
     {
         $runner = $this->createMock(MigrationRunner::class);
 
@@ -25,6 +27,6 @@ class DbMigrateCommandFactoryTest extends TestCase
         $factory = new DbMigrateCommandFactory();
         $command = $factory($container);
 
-        self::assertInstanceOf(DbMigrateCommand::class, $command);
+        static::assertInstanceOf(DbMigrateCommand::class, $command);
     }
 }

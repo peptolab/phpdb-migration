@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace PhpDb\Migration\Command;
 
 use Exception;
+use Override;
 use PhpDb\Migration\MigrationRunner;
 use PhpDb\Migration\MismatchStrategy;
 use Symfony\Component\Console\Command\Command;
@@ -28,10 +29,10 @@ class DbMigrateCommand extends Command
         parent::__construct();
     }
 
+    #[Override]
     protected function configure(): void
     {
-        $this
-            ->setHelp('Run pending database migrations or view migration status')
+        $this->setHelp('Run pending database migrations or view migration status')
             ->addOption(
                 'status',
                 's',
@@ -58,6 +59,7 @@ class DbMigrateCommand extends Command
             );
     }
 
+    #[Override]
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
@@ -77,91 +79,10 @@ class DbMigrateCommand extends Command
 
             return $this->runMigrations($io, $input);
         } catch (Exception $e) {
-            $io->error('Migration error: ' . $e->getMessage());
+            $io->error("Migration error: {$e->getMessage()}");
 
             return Command::FAILURE;
         }
-    }
-
-    private function showStatus(SymfonyStyle $io): int
-    {
-        $status = $this->runner->getStatus();
-
-        if (empty($status)) {
-            $io->info('No migrations found.');
-
-            return Command::SUCCESS;
-        }
-
-        $io->section('Migration Status');
-
-        $rows         = [];
-        $pendingCount = 0;
-
-        foreach ($status as $migration) {
-            $statusText = $migration['status'] === 'applied'
-                ? '<fg=green>Applied</>'
-                : '<fg=yellow>Pending</>';
-
-            if ($migration['status'] === 'pending') {
-                $pendingCount++;
-            }
-
-            $rows[] = [
-                $migration['version'],
-                $migration['description'],
-                $statusText,
-                $migration['executed_at'] ?? '-',
-            ];
-        }
-
-        $io->table(
-            ['Version', 'Description', 'Status', 'Executed At'],
-            $rows,
-        );
-
-        if ($pendingCount > 0) {
-            $io->note(sprintf('%d pending migration(s) to run.', $pendingCount));
-        } else {
-            $io->success('All migrations have been applied.');
-        }
-
-        return Command::SUCCESS;
-    }
-
-    private function showPreview(SymfonyStyle $io): int
-    {
-        $previews = $this->runner->previewPending();
-
-        if (empty($previews)) {
-            $io->success('No pending migrations.');
-
-            return Command::SUCCESS;
-        }
-
-        $io->section('Migration Preview (Dry Run)');
-
-        foreach ($previews as $preview) {
-            $io->writeln(sprintf(
-                '<info>[%s]</info> %s',
-                $preview['version'],
-                $preview['description'],
-            ));
-
-            if (empty($preview['sql'])) {
-                $io->writeln('  <comment>No SQL statements (already applied or skipped)</comment>');
-            } else {
-                foreach ($preview['sql'] as $sql) {
-                    $io->writeln('  <fg=gray>' . $sql . '</>');
-                }
-            }
-
-            $io->newLine();
-        }
-
-        $io->note('This was a dry run. No changes were made to the database.');
-
-        return Command::SUCCESS;
     }
 
     private function runMigrations(SymfonyStyle $io, InputInterface $input): int
@@ -189,7 +110,7 @@ class DbMigrateCommand extends Command
 
         // Show resolution strategy
         $strategyOption = $input->getOption('resolution-strategy');
-        $strategy       = $strategyOption !== null
+        $strategy       = null !== $strategyOption
             ? MismatchStrategy::from($strategyOption)
             : $this->runner->getMismatchStrategy();
 
@@ -272,6 +193,87 @@ class DbMigrateCommand extends Command
         }
 
         $io->success(sprintf('%d migration(s) completed successfully.', count($results)));
+
+        return Command::SUCCESS;
+    }
+
+    private function showPreview(SymfonyStyle $io): int
+    {
+        $previews = $this->runner->previewPending();
+
+        if (empty($previews)) {
+            $io->success('No pending migrations.');
+
+            return Command::SUCCESS;
+        }
+
+        $io->section('Migration Preview (Dry Run)');
+
+        foreach ($previews as $preview) {
+            $io->writeln(sprintf(
+                '<info>[%s]</info> %s',
+                $preview['version'],
+                $preview['description'],
+            ));
+
+            if (empty($preview['sql'])) {
+                $io->writeln('  <comment>No SQL statements (already applied or skipped)</comment>');
+            } else {
+                foreach ($preview['sql'] as $sql) {
+                    $io->writeln("  <fg=gray>{$sql}</>");
+                }
+            }
+
+            $io->newLine();
+        }
+
+        $io->note('This was a dry run. No changes were made to the database.');
+
+        return Command::SUCCESS;
+    }
+
+    private function showStatus(SymfonyStyle $io): int
+    {
+        $status = $this->runner->getStatus();
+
+        if (empty($status)) {
+            $io->info('No migrations found.');
+
+            return Command::SUCCESS;
+        }
+
+        $io->section('Migration Status');
+
+        $rows         = [];
+        $pendingCount = 0;
+
+        foreach ($status as $migration) {
+            $statusText = 'applied' === $migration['status']
+                ? '<fg=green>Applied</>'
+                : '<fg=yellow>Pending</>';
+
+            if ('pending' === $migration['status']) {
+                $pendingCount++;
+            }
+
+            $rows[] = [
+                $migration['version'],
+                $migration['description'],
+                $statusText,
+                $migration['executed_at'] ?? '-',
+            ];
+        }
+
+        $io->table(
+            ['Version', 'Description', 'Status', 'Executed At'],
+            $rows,
+        );
+
+        if ($pendingCount > 0) {
+            $io->note(sprintf('%d pending migration(s) to run.', $pendingCount));
+        } else {
+            $io->success('All migrations have been applied.');
+        }
 
         return Command::SUCCESS;
     }

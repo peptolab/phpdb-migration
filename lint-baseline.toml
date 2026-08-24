@@ -1,0 +1,349 @@
+variant = "loose"
+
+[[issues]]
+file = "src/AbstractMigration.php"
+code = "cyclomatic-complexity"
+message = "Class has high complexity."
+count = 1
+
+[[issues]]
+file = "src/AbstractMigration.php"
+code = "excessive-parameter-list"
+message = "Parameter list is too long."
+count = 2
+
+[[issues]]
+file = "src/AbstractMigration.php"
+code = "halstead"
+message = "Method has a high halstead difficulty"
+count = 1
+
+[[issues]]
+file = "src/AbstractMigration.php"
+code = "kan-defect"
+message = "Class has a high kan defect score."
+count = 1
+
+[[issues]]
+file = "src/AbstractMigration.php"
+code = "literal-named-argument"
+message = "Literal argument `'?'` should be passed as a named argument for clarity."
+count = 1
+
+[[issues]]
+file = "src/AbstractMigration.php"
+code = "no-array-accumulation-in-loop"
+message = "Array spread in reassignment inside a loop causes O(n²) array copying."
+count = 1
+
+[[issues]]
+file = "src/AbstractMigration.php"
+code = "no-boolean-flag-parameter"
+message = "Avoid boolean flag parameters."
+count = 2
+
+[[issues]]
+file = "src/AbstractMigration.php"
+code = "no-empty"
+message = "Use of the `empty` construct."
+count = 3
+
+[[issues]]
+file = "src/AbstractMigration.php"
+code = "no-isset"
+message = "Use of the `isset` construct."
+count = 1
+
+[[issues]]
+file = "src/AbstractMigration.php"
+code = "too-many-methods"
+message = "Class has too many methods."
+count = 1
+
+[[issues]]
+file = "src/Command/DbMigrateCommand.php"
+code = "cyclomatic-complexity"
+message = "Class has high complexity."
+count = 1
+
+[[issues]]
+file = "src/Command/DbMigrateCommand.php"
+code = "kan-defect"
+message = "Class has a high kan defect score."
+count = 1
+
+[[issues]]
+file = "src/Command/DbMigrateCommand.php"
+code = "no-else-clause"
+message = "Avoid `else` clauses."
+count = 3
+
+[[issues]]
+file = "src/Command/DbMigrateCommand.php"
+code = "no-empty"
+message = "Use of the `empty` construct."
+count = 6
+
+[[issues]]
+file = "src/Command/DbMigrateCommand.php"
+code = "no-negated-ternary"
+message = "Negated ternary condition."
+count = 1
+
+[[issues]]
+file = "src/Command/DbMigrateCreateCommand.php"
+code = "literal-named-argument"
+message = "Literal argument `''` should be passed as a named argument for clarity."
+count = 2
+
+[[issues]]
+file = "src/Command/DbMigrateCreateCommand.php"
+code = "literal-named-argument"
+message = "Literal argument `0o755` should be passed as a named argument for clarity."
+count = 1
+
+[[issues]]
+file = "src/Command/DbMigrateCreateCommand.php"
+code = "literal-named-argument"
+message = "Literal argument `true` should be passed as a named argument for clarity."
+count = 1
+
+[[issues]]
+file = "src/Command/DbMigrateCreateCommandFactory.php"
+code = "no-literal-namespace-string"
+message = "Use `::class` notation instead of a hardcoded namespace string."
+count = 1
+
+[[issues]]
+file = "src/DefinitionComparator.php"
+code = "cyclomatic-complexity"
+message = "Class has high complexity."
+count = 1
+
+[[issues]]
+file = "src/DefinitionComparator.php"
+code = "excessive-parameter-list"
+message = "Parameter list is too long."
+count = 1
+
+[[issues]]
+file = "src/DefinitionComparator.php"
+code = "halstead"
+message = "Method has a high halstead volume and effort"
+count = 1
+
+[[issues]]
+file = "src/DefinitionComparator.php"
+code = "kan-defect"
+message = "Class has a high kan defect score."
+count = 1
+
+[[issues]]
+file = "src/DefinitionComparator.php"
+code = "no-isset"
+message = "Use of the `isset` construct."
+count = 1
+
+[[issues]]
+file = "src/MigrationRunner.php"
+code = "cyclomatic-complexity"
+message = "Class has high complexity."
+count = 1
+
+[[issues]]
+file = "src/MigrationRunner.php"
+code = "kan-defect"
+message = "Class has a high kan defect score."
+count = 1
+
+[[issues]]
+file = "src/MigrationRunner.php"
+code = "literal-named-argument"
+message = "Literal argument `true` should be passed as a named argument for clarity."
+count = 2
+
+[[issues]]
+file = "src/MigrationRunner.php"
+code = "no-empty"
+message = "Use of the `empty` construct."
+count = 1
+
+[[issues]]
+file = "src/MigrationRunner.php"
+code = "no-literal-namespace-string"
+message = "Use `::class` notation instead of a hardcoded namespace string."
+count = 1
+
+[[issues]]
+file = "src/MigrationRunner.php"
+code = "no-negated-ternary"
+message = "Negated ternary condition."
+count = 1
+
+[[issues]]
+file = "src/MigrationRunner.php"
+code = "string-style"
+message = "String concatenation can be replaced with interpolation."
+count = 1
+
+[[issues]]
+file = "src/MigrationRunner.php"
+code = "too-many-methods"
+message = "Class has too many methods."
+count = 1
+
+[[issues]]
+file = "src/MigrationRunnerFactory.php"
+code = "no-literal-namespace-string"
+message = "Use `::class` notation instead of a hardcoded namespace string."
+count = 1
+
+[[issues]]
+file = "src/SchemaInspector.php"
+code = "cyclomatic-complexity"
+message = "Class has high complexity."
+count = 1
+
+[[issues]]
+file = "src/SchemaInspector.php"
+code = "kan-defect"
+message = "Class has a high kan defect score."
+count = 1
+
+[[issues]]
+file = "src/SchemaInspector.php"
+code = "literal-named-argument"
+message = "Literal argument `true` should be passed as a named argument for clarity."
+count = 2
+
+[[issues]]
+file = "src/SchemaInspector.php"
+code = "no-empty-catch-clause"
+message = "Do not use empty `catch` blocks."
+count = 1
+
+[[issues]]
+file = "src/SchemaInspector.php"
+code = "no-isset"
+message = "Use of the `isset` construct."
+count = 5
+
+[[issues]]
+file = "src/SchemaInspector.php"
+code = "no-literal-namespace-string"
+message = "Use `::class` notation instead of a hardcoded namespace string."
+count = 7
+
+[[issues]]
+file = "src/SchemaInspector.php"
+code = "too-many-methods"
+message = "Class has too many methods."
+count = 1
+
+[[issues]]
+file = "test/asset/TestableMigration.php"
+code = "excessive-parameter-list"
+message = "Parameter list is too long."
+count = 1
+
+[[issues]]
+file = "test/integration/AbstractIntegrationTestCase.php"
+code = "no-isset"
+message = "Use of the `isset` construct."
+count = 1
+
+[[issues]]
+file = "test/integration/AbstractIntegrationTestCase.php"
+code = "no-shorthand-ternary"
+message = "Use of the shorthand ternary operator."
+count = 5
+
+[[issues]]
+file = "test/integration/AbstractMigrationIntegrationTest.php"
+code = "no-isset"
+message = "Use of the `isset` construct."
+count = 1
+
+[[issues]]
+file = "test/integration/MigrationRunnerIntegrationTest.php"
+code = "no-literal-namespace-string"
+message = "Use `::class` notation instead of a hardcoded namespace string."
+count = 1
+
+[[issues]]
+file = "test/unit/AbstractMigrationTest.php"
+code = "ambiguous-function-call"
+message = "Ambiguous function call detected."
+count = 1
+
+[[issues]]
+file = "test/unit/Command/DbMigrateCreateCommandFactoryTest.php"
+code = "no-literal-namespace-string"
+message = "Use `::class` notation instead of a hardcoded namespace string."
+count = 1
+
+[[issues]]
+file = "test/unit/Command/DbMigrateCreateCommandTest.php"
+code = "ambiguous-constant-access"
+message = "Ambiguous constant access detected."
+count = 1
+
+[[issues]]
+file = "test/unit/Command/DbMigrateCreateCommandTest.php"
+code = "literal-named-argument"
+message = "Literal argument `''` should be passed as a named argument for clarity."
+count = 1
+
+[[issues]]
+file = "test/unit/Command/DbMigrateCreateCommandTest.php"
+code = "no-literal-namespace-string"
+message = "Use `::class` notation instead of a hardcoded namespace string."
+count = 3
+
+[[issues]]
+file = "test/unit/Command/DbMigrateCreateCommandTest.php"
+code = "no-shorthand-ternary"
+message = "Use of the shorthand ternary operator."
+count = 1
+
+[[issues]]
+file = "test/unit/MigrationRunnerDiscoveryTest.php"
+code = "literal-named-argument"
+message = 'Literal argument `"<?php\n// not a migration\n"` should be passed as a named argument for clarity.'
+count = 1
+
+[[issues]]
+file = "test/unit/MigrationRunnerDiscoveryTest.php"
+code = "literal-named-argument"
+message = "Literal argument `0o755` should be passed as a named argument for clarity."
+count = 1
+
+[[issues]]
+file = "test/unit/MigrationRunnerDiscoveryTest.php"
+code = "literal-named-argument"
+message = "Literal argument `true` should be passed as a named argument for clarity."
+count = 1
+
+[[issues]]
+file = "test/unit/MigrationRunnerDiscoveryTest.php"
+code = "no-literal-namespace-string"
+message = "Use `::class` notation instead of a hardcoded namespace string."
+count = 1
+
+[[issues]]
+file = "test/unit/MigrationRunnerDiscoveryTest.php"
+code = "no-shorthand-ternary"
+message = "Use of the shorthand ternary operator."
+count = 1
+
+[[issues]]
+file = "test/unit/MigrationRunnerFactoryTest.php"
+code = "no-literal-namespace-string"
+message = "Use `::class` notation instead of a hardcoded namespace string."
+count = 1
+
+[[issues]]
+file = "test/unit/MigrationRunnerTest.php"
+code = "no-literal-namespace-string"
+message = "Use `::class` notation instead of a hardcoded namespace string."
+count = 1

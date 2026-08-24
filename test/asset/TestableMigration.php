@@ -21,40 +21,24 @@ class TestableMigration extends AbstractMigration
         $this->defineCallback = $defineCallback;
     }
 
-    public function getVersion(): string
+    public function callDropColumnIfExists(string $tableName, string $columnName): void
     {
-        return '20260101000000';
+        $this->dropColumnIfExists($tableName, $columnName);
     }
 
-    public function getDescription(): string
+    public function callDropForeignKeyIfExists(string $tableName, string $constraintName): void
     {
-        return 'Test migration';
+        $this->dropForeignKeyIfExists($tableName, $constraintName);
     }
 
-    protected function define(): void
+    public function callDropIndexIfExists(string $tableName, string $indexName): void
     {
-        ($this->defineCallback)($this);
+        $this->dropIndexIfExists($tableName, $indexName);
     }
 
-    /** @param callable(CreateTable): void $callback */
-    public function callEnsureTable(string $tableName, callable $callback): void
+    public function callDropTableIfExists(string $tableName): void
     {
-        $this->ensureTable($tableName, $callback);
-    }
-
-    public function callEnsureColumn(string $tableName, Column\ColumnInterface $column): void
-    {
-        $this->ensureColumn($tableName, $column);
-    }
-
-    /** @param array<string> $columns */
-    public function callEnsureIndex(
-        string $tableName,
-        string $indexName,
-        array $columns,
-        bool $unique = false,
-    ): void {
-        $this->ensureIndex($tableName, $indexName, $columns, $unique);
+        $this->dropTableIfExists($tableName);
     }
 
     public function callEnsureCheckConstraint(
@@ -63,6 +47,11 @@ class TestableMigration extends AbstractMigration
         string $expression,
     ): void {
         $this->ensureCheckConstraint($tableName, $constraintName, $expression);
+    }
+
+    public function callEnsureColumn(string $tableName, Column\ColumnInterface $column): void
+    {
+        $this->ensureColumn($tableName, $column);
     }
 
     public function callEnsureForeignKey(
@@ -85,39 +74,26 @@ class TestableMigration extends AbstractMigration
         );
     }
 
-    public function callDropIndexIfExists(string $tableName, string $indexName): void
-    {
-        $this->dropIndexIfExists($tableName, $indexName);
-    }
-
-    public function callDropForeignKeyIfExists(string $tableName, string $constraintName): void
-    {
-        $this->dropForeignKeyIfExists($tableName, $constraintName);
-    }
-
-    public function callModifyColumn(
+    /** @param array<string> $columns */
+    public function callEnsureIndex(
         string $tableName,
-        string $columnName,
-        Column\Column $column,
-        ?string $newName = null,
+        string $indexName,
+        array $columns,
+        bool $unique = false,
     ): void {
-        $this->modifyColumn($tableName, $columnName, $column, $newName);
+        $this->ensureIndex($tableName, $indexName, $columns, $unique);
+    }
+
+    /** @param callable(CreateTable): void $callback */
+    public function callEnsureTable(string $tableName, callable $callback): void
+    {
+        $this->ensureTable($tableName, $callback);
     }
 
     /** @param array<string> $columns */
     public function callEnsureUniqueKey(string $tableName, string $keyName, array $columns): void
     {
         $this->ensureUniqueKey($tableName, $keyName, $columns);
-    }
-
-    public function callDropTableIfExists(string $tableName): void
-    {
-        $this->dropTableIfExists($tableName);
-    }
-
-    public function callDropColumnIfExists(string $tableName, string $columnName): void
-    {
-        $this->dropColumnIfExists($tableName, $columnName);
     }
 
     public function callExecuteSql(string $sql, ?string $description = null): void
@@ -147,5 +123,29 @@ class TestableMigration extends AbstractMigration
     public function callInsertRowIfNotExists(string $tableName, array $data, array $uniqueColumns): void
     {
         $this->insertRowIfNotExists($tableName, $data, $uniqueColumns);
+    }
+
+    public function callModifyColumn(
+        string $tableName,
+        string $columnName,
+        Column\Column $column,
+        ?string $newName = null,
+    ): void {
+        $this->modifyColumn($tableName, $columnName, $column, $newName);
+    }
+
+    public function getDescription(): string
+    {
+        return 'Test migration';
+    }
+
+    public function getVersion(): string
+    {
+        return '20260101000000';
+    }
+
+    protected function define(): void
+    {
+        ($this->defineCallback)($this);
     }
 }

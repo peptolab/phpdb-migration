@@ -11,19 +11,19 @@ use PhpDb\Sql\Ddl\CreateTable;
 
 class Version20260101000000CreateTestTable extends AbstractMigration
 {
-    public function getVersion(): string
-    {
-        return '20260101000000';
-    }
-
     public function getDescription(): string
     {
         return 'Create test table';
     }
 
+    public function getVersion(): string
+    {
+        return '20260101000000';
+    }
+
     protected function define(): void
     {
-        $this->ensureTable('test_table', function (CreateTable $table) {
+        $this->ensureTable('test_table', static function (CreateTable $table) {
             $id = new Column\Integer('id');
             $id->setOption('unsigned', true);
             $id->setOption('auto_increment', true);

@@ -6,12 +6,14 @@ namespace PhpDbTest\Migration\Command;
 
 use PhpDb\Migration\Command\DbMigrateCreateCommand;
 use PhpDb\Migration\Command\DbMigrateCreateCommandFactory;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 use Psr\Container\ContainerInterface;
 
 class DbMigrateCreateCommandFactoryTest extends TestCase
 {
-    public function testInvokeUsesConfiguredPathAndNamespace(): void
+    #[Test]
+    public function invokeUsesConfiguredPathAndNamespace(): void
     {
         $container = $this->createMock(ContainerInterface::class);
         $container->method('get')
@@ -24,10 +26,11 @@ class DbMigrateCreateCommandFactoryTest extends TestCase
         $factory = new DbMigrateCreateCommandFactory();
         $command = $factory($container);
 
-        self::assertInstanceOf(DbMigrateCreateCommand::class, $command);
+        static::assertInstanceOf(DbMigrateCreateCommand::class, $command);
     }
 
-    public function testInvokeUsesDefaultsWhenConfigIsMissing(): void
+    #[Test]
+    public function invokeUsesDefaultsWhenConfigIsMissing(): void
     {
         $container = $this->createMock(ContainerInterface::class);
         $container->method('get')
@@ -37,6 +40,6 @@ class DbMigrateCreateCommandFactoryTest extends TestCase
         $factory = new DbMigrateCreateCommandFactory();
         $command = $factory($container);
 
-        self::assertInstanceOf(DbMigrateCreateCommand::class, $command);
+        static::assertInstanceOf(DbMigrateCreateCommand::class, $command);
     }
 }

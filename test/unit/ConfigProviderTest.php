@@ -11,56 +11,60 @@ use PhpDb\Migration\Command\DbMigrateCreateCommandFactory;
 use PhpDb\Migration\ConfigProvider;
 use PhpDb\Migration\MigrationRunner;
 use PhpDb\Migration\MigrationRunnerFactory;
+use PHPUnit\Framework\Attributes\Test;
 use PHPUnit\Framework\TestCase;
 
 class ConfigProviderTest extends TestCase
 {
     private ConfigProvider $provider;
 
-    protected function setUp(): void
-    {
-        $this->provider = new ConfigProvider();
-    }
-
-    public function testInvokeReturnsArray(): void
-    {
-        $config = ($this->provider)();
-
-        self::assertIsArray($config);
-        self::assertArrayHasKey('dependencies', $config);
-        self::assertArrayHasKey('laminas-cli', $config);
-    }
-
-    public function testDependenciesContainFactories(): void
-    {
-        $deps = $this->provider->getDependencies();
-
-        self::assertArrayHasKey('factories', $deps);
-
-        $factories = $deps['factories'];
-
-        self::assertArrayHasKey(MigrationRunner::class, $factories);
-        self::assertSame(MigrationRunnerFactory::class, $factories[MigrationRunner::class]);
-
-        self::assertArrayHasKey(DbMigrateCommand::class, $factories);
-        self::assertSame(DbMigrateCommandFactory::class, $factories[DbMigrateCommand::class]);
-
-        self::assertArrayHasKey(DbMigrateCreateCommand::class, $factories);
-        self::assertSame(DbMigrateCreateCommandFactory::class, $factories[DbMigrateCreateCommand::class]);
-    }
-
-    public function testCliConfigContainsCommands(): void
+    #[Test]
+    public function cliConfigContainsCommands(): void
     {
         $cliConfig = $this->provider->getCliConfig();
 
-        self::assertArrayHasKey('commands', $cliConfig);
+        static::assertArrayHasKey('commands', $cliConfig);
 
         $commands = $cliConfig['commands'];
 
-        self::assertArrayHasKey('db:migrate', $commands);
-        self::assertSame(DbMigrateCommand::class, $commands['db:migrate']);
+        static::assertArrayHasKey('db:migrate', $commands);
+        static::assertSame(DbMigrateCommand::class, $commands['db:migrate']);
 
-        self::assertArrayHasKey('db:migrate:create', $commands);
-        self::assertSame(DbMigrateCreateCommand::class, $commands['db:migrate:create']);
+        static::assertArrayHasKey('db:migrate:create', $commands);
+        static::assertSame(DbMigrateCreateCommand::class, $commands['db:migrate:create']);
+    }
+
+    #[Test]
+    public function dependenciesContainFactories(): void
+    {
+        $deps = $this->provider->getDependencies();
+
+        static::assertArrayHasKey('factories', $deps);
+
+        $factories = $deps['factories'];
+
+        static::assertArrayHasKey(MigrationRunner::class, $factories);
+        static::assertSame(MigrationRunnerFactory::class, $factories[MigrationRunner::class]);
+
+        static::assertArrayHasKey(DbMigrateCommand::class, $factories);
+        static::assertSame(DbMigrateCommandFactory::class, $factories[DbMigrateCommand::class]);
+
+        static::assertArrayHasKey(DbMigrateCreateCommand::class, $factories);
+        static::assertSame(DbMigrateCreateCommandFactory::class, $factories[DbMigrateCreateCommand::class]);
+    }
+
+    #[Test]
+    public function invokeReturnsArray(): void
+    {
+        $config = ($this->provider)();
+
+        static::assertIsArray($config);
+        static::assertArrayHasKey('dependencies', $config);
+        static::assertArrayHasKey('laminas-cli', $config);
+    }
+
+    protected function setUp(): void
+    {
+        $this->provider = new ConfigProvider();
     }
 }

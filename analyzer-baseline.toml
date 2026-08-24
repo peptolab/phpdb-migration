@@ -1,0 +1,361 @@
+variant = "loose"
+
+[[issues]]
+file = "src/AbstractMigration.php"
+code = "less-specific-nested-argument-type"
+message = 'Argument type mismatch for argument #3 of `PhpDb\Migration\DefinitionComparator::compareIndex`: expected `array<array-key, string>`, but provided type `non-empty-list<mixed>` is less specific.'
+count = 1
+
+[[issues]]
+file = "src/AbstractMigration.php"
+code = "missing-api-or-internal"
+message = 'Abstract class `PhpDb\Migration\AbstractMigration` is missing an `@api` or `@internal` annotation.'
+count = 1
+
+[[issues]]
+file = "src/AbstractMigration.php"
+code = "mixed-array-access"
+message = "Unsafe array access on type `mixed`."
+count = 1
+
+[[issues]]
+file = "src/AbstractMigration.php"
+code = "mixed-assignment"
+message = "Assigning `mixed` type to a variable may lead to unexpected behavior."
+count = 3
+
+[[issues]]
+file = "src/AbstractMigration.php"
+code = "mixed-operand"
+message = "Left operand in `>` comparison has `mixed` type."
+count = 1
+
+[[issues]]
+file = "src/AbstractMigration.php"
+code = "non-iterable-object-iteration"
+message = 'Iterating over object of type `PhpDb\Sql\Ddl\Column\ColumnInterface` which does not implement `Iterator` or `IteratorAggregate`.'
+count = 1
+
+[[issues]]
+file = "src/AbstractMigration.php"
+code = "possibly-invalid-iterator"
+message = 'The expression provided to `foreach` (type `PhpDb\Sql\Ddl\Column\ColumnInterface|array<array-key, PhpDb\Sql\Ddl\Column\ColumnInterface|string>|string`) might not be iterable at runtime.'
+count = 1
+
+[[issues]]
+file = "src/AbstractMigration.php"
+code = "unhandled-thrown-type"
+message = 'Potentially unhandled exception `PhpDb\Adapter\Exception\RuntimeException` in `PhpDb\Migration\AbstractMigration::insertRowIfNotExists`.'
+count = 1
+
+[[issues]]
+file = "src/AbstractMigration.php"
+code = "unhandled-thrown-type"
+message = 'Potentially unhandled exception `PhpDb\Adapter\Exception\RuntimeException` in `PhpDb\Migration\AbstractMigration::runQuery`.'
+count = 1
+
+[[issues]]
+file = "src/Command/DbMigrateCommand.php"
+code = "class-must-be-final"
+message = 'Class `PhpDb\Migration\Command\DbMigrateCommand` should be declared `final`.'
+count = 1
+
+[[issues]]
+file = "src/Command/DbMigrateCommand.php"
+code = "mixed-argument"
+message = 'Invalid argument type for argument #1 of `PhpDb\Migration\MismatchStrategy::from`: expected `string`, but found `nonnull`.'
+count = 1
+
+[[issues]]
+file = "src/Command/DbMigrateCommand.php"
+code = "mixed-assignment"
+message = "Assigning `mixed` type to a variable may lead to unexpected behavior."
+count = 2
+
+[[issues]]
+file = "src/Command/DbMigrateCommand.php"
+code = "possibly-undefined-string-array-index"
+message = "Possibly undefined array key `string('actual')` accessed on `array<string, string>`."
+count = 1
+
+[[issues]]
+file = "src/Command/DbMigrateCommand.php"
+code = "possibly-undefined-string-array-index"
+message = "Possibly undefined array key `string('column')` accessed on `array<string, string>`."
+count = 1
+
+[[issues]]
+file = "src/Command/DbMigrateCommand.php"
+code = "possibly-undefined-string-array-index"
+message = "Possibly undefined array key `string('expected')` accessed on `array<string, string>`."
+count = 1
+
+[[issues]]
+file = "src/Command/DbMigrateCommand.php"
+code = "possibly-undefined-string-array-index"
+message = "Possibly undefined array key `string('field')` accessed on `array<string, string>`."
+count = 1
+
+[[issues]]
+file = "src/Command/DbMigrateCommand.php"
+code = "possibly-undefined-string-array-index"
+message = "Possibly undefined array key `string('table')` accessed on `array<string, string>`."
+count = 1
+
+[[issues]]
+file = "src/Command/DbMigrateCommandFactory.php"
+code = "class-must-be-final"
+message = 'Class `PhpDb\Migration\Command\DbMigrateCommandFactory` should be declared `final`.'
+count = 1
+
+[[issues]]
+file = "src/Command/DbMigrateCreateCommand.php"
+code = "class-must-be-final"
+message = 'Class `PhpDb\Migration\Command\DbMigrateCreateCommand` should be declared `final`.'
+count = 1
+
+[[issues]]
+file = "src/Command/DbMigrateCreateCommandFactory.php"
+code = "class-must-be-final"
+message = 'Class `PhpDb\Migration\Command\DbMigrateCreateCommandFactory` should be declared `final`.'
+count = 1
+
+[[issues]]
+file = "src/Command/DbMigrateCreateCommandFactory.php"
+code = "mixed-assignment"
+message = "Assigning `mixed` type to a variable may lead to unexpected behavior."
+count = 2
+
+[[issues]]
+file = "src/Command/DbMigrateCreateCommandFactory.php"
+code = "mixed-assignment"
+message = "Assigning `nonnull` type to a variable may lead to unexpected behavior."
+count = 1
+
+[[issues]]
+file = "src/ConfigProvider.php"
+code = "class-must-be-final"
+message = 'Class `PhpDb\Migration\ConfigProvider` should be declared `final`.'
+count = 1
+
+[[issues]]
+file = "src/DefinitionComparator.php"
+code = "class-must-be-final"
+message = 'Class `PhpDb\Migration\DefinitionComparator` should be declared `final`.'
+count = 1
+
+[[issues]]
+file = "src/DefinitionComparator.php"
+code = "mixed-assignment"
+message = "Assigning `mixed` type to a variable may lead to unexpected behavior."
+count = 6
+
+[[issues]]
+file = "src/DefinitionComparator.php"
+code = "mixed-operand"
+message = "Casting `mixed` to `bool`."
+count = 1
+
+[[issues]]
+file = "src/MigrationInterface.php"
+code = "missing-api-or-internal"
+message = 'Interface `PhpDb\Migration\MigrationInterface` is missing an `@api` or `@internal` annotation.'
+count = 1
+
+[[issues]]
+file = "src/MigrationResult.php"
+code = "missing-constant-type"
+message = "Class constant `STATUS_FAILED` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/MigrationResult.php"
+code = "missing-constant-type"
+message = "Class constant `STATUS_SKIPPED` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/MigrationResult.php"
+code = "missing-constant-type"
+message = "Class constant `STATUS_SUCCESS` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/MigrationRunner.php"
+code = "class-must-be-final"
+message = 'Class `PhpDb\Migration\MigrationRunner` should be declared `final`.'
+count = 1
+
+[[issues]]
+file = "src/MigrationRunner.php"
+code = "imprecise-type"
+message = "Type `array` in parameter `$row` is imprecise, equivalent to `array<array-key, mixed>`."
+count = 1
+
+[[issues]]
+file = "src/MigrationRunner.php"
+code = "missing-constant-type"
+message = "Class constant `MIGRATIONS_TABLE` is missing a type hint."
+count = 1
+
+[[issues]]
+file = "src/MigrationRunner.php"
+code = "missing-return-type"
+message = "Function `arrow function` is missing a return type hint."
+count = 2
+
+[[issues]]
+file = "src/MigrationRunner.php"
+code = "mixed-array-access"
+message = "Unsafe array access on type `mixed`."
+count = 3
+
+[[issues]]
+file = "src/MigrationRunner.php"
+code = "mixed-assignment"
+message = "Assigning `mixed` type to a variable may lead to unexpected behavior."
+count = 1
+
+[[issues]]
+file = "src/MigrationRunner.php"
+code = "possibly-undefined-string-array-index"
+message = "Possibly undefined array key `string('version')` accessed on `array<array-key, mixed>`."
+count = 1
+
+[[issues]]
+file = "src/MigrationRunner.php"
+code = "redundant-docblock-type"
+message = "Redundant docblock type for variable `$migration`."
+count = 1
+
+[[issues]]
+file = "src/MigrationRunner.php"
+code = "unhandled-thrown-type"
+message = 'Potentially unhandled exception `PhpDb\Adapter\Exception\RuntimeException` in `PhpDb\Migration\MigrationRunner::ensureMigrationsTable`.'
+count = 1
+
+[[issues]]
+file = "src/MigrationRunner.php"
+code = "unhandled-thrown-type"
+message = 'Potentially unhandled exception `PhpDb\Adapter\Exception\RuntimeException` in `PhpDb\Migration\MigrationRunner::getPendingMigrations`.'
+count = 1
+
+[[issues]]
+file = "src/MigrationRunner.php"
+code = "unhandled-thrown-type"
+message = 'Potentially unhandled exception `PhpDb\Adapter\Exception\RuntimeException` in `PhpDb\Migration\MigrationRunner::getStatus`.'
+count = 1
+
+[[issues]]
+file = "src/MigrationRunner.php"
+code = "unhandled-thrown-type"
+message = 'Potentially unhandled exception `PhpDb\Adapter\Exception\RuntimeException` in `PhpDb\Migration\MigrationRunner::runMigration`.'
+count = 1
+
+[[issues]]
+file = "src/MigrationRunner.php"
+code = "unsafe-instantiation"
+message = 'Potentially unsafe instantiation: `class-string<PhpDb\Migration\MigrationInterface>` may contain the interface `PhpDb\Migration\MigrationInterface` itself, which cannot be instantiated.'
+count = 1
+
+[[issues]]
+file = "src/MigrationRunnerFactory.php"
+code = "class-must-be-final"
+message = 'Class `PhpDb\Migration\MigrationRunnerFactory` should be declared `final`.'
+count = 1
+
+[[issues]]
+file = "src/MigrationRunnerFactory.php"
+code = "mixed-assignment"
+message = "Assigning `mixed` type to a variable may lead to unexpected behavior."
+count = 4
+
+[[issues]]
+file = "src/MigrationRunnerFactory.php"
+code = "mixed-assignment"
+message = "Assigning `nonnull` type to a variable may lead to unexpected behavior."
+count = 1
+
+[[issues]]
+file = "src/SchemaInspector.php"
+code = "ambiguous-instantiation-target"
+message = "Ambiguous instantiation: the expression used with `new` can resolve to multiple different classes."
+count = 1
+
+[[issues]]
+file = "src/SchemaInspector.php"
+code = "class-must-be-final"
+message = 'Class `PhpDb\Migration\SchemaInspector` should be declared `final`.'
+count = 1
+
+[[issues]]
+file = "src/SchemaInspector.php"
+code = "less-specific-nested-return-statement"
+message = '''Returned type `array<string, mixed>` is less specific than the declared return type `array<string, array<string, mixed>>` for function `PhpDb\Migration\SchemaInspector::getColumns` due to nested 'mixed'.'''
+count = 1
+
+[[issues]]
+file = "src/SchemaInspector.php"
+code = "mixed-array-access"
+message = "Unsafe array access on type `mixed`."
+count = 1
+
+[[issues]]
+file = "src/SchemaInspector.php"
+code = "mixed-assignment"
+message = "Assigning `mixed` type to a variable may lead to unexpected behavior."
+count = 2
+
+[[issues]]
+file = "src/SchemaInspector.php"
+code = "mixed-property-type-coercion"
+message = "A value with a less specific type `array<string, array<mixed, bool>>` is being assigned to property `$indexCache` (array<string, array<string, bool>>)."
+count = 1
+
+[[issues]]
+file = "src/SchemaInspector.php"
+code = "mixed-return-statement"
+message = 'Could not infer a precise return type for function `PhpDb\Migration\SchemaInspector::createMetadataFromAdapter`. Saw type `mixed`.'
+count = 1
+
+[[issues]]
+file = "src/SchemaInspector.php"
+code = "non-existent-class"
+message = 'Class `PhpDb\Metadata\Source\OracleMetadata` not found.'
+count = 1
+
+[[issues]]
+file = "src/SchemaInspector.php"
+code = "non-existent-class"
+message = 'Class `PhpDb\Metadata\Source\PostgresqlMetadata` not found.'
+count = 1
+
+[[issues]]
+file = "src/SchemaInspector.php"
+code = "non-existent-class"
+message = 'Class `PhpDb\Metadata\Source\SqlServerMetadata` not found.'
+count = 1
+
+[[issues]]
+file = "src/SchemaInspector.php"
+code = "non-existent-class"
+message = 'Class `PhpDb\Metadata\Source\SqliteMetadata` not found.'
+count = 1
+
+[[issues]]
+file = "src/SchemaInspector.php"
+code = "possibly-invalid-argument"
+message = 'Possible argument type mismatch for argument #1 of `PhpDb\Metadata\Source\AbstractSource::__construct`: expected `PhpDb\Adapter\AdapterInterface&PhpDb\Adapter\SchemaAwareInterface`, but possibly received `PhpDb\Adapter\AdapterInterface`.'
+count = 1
+
+[[issues]]
+file = "src/SchemaInspector.php"
+code = "possibly-invalid-argument"
+message = '''Possible argument type mismatch for argument #1 of `call_user_func`: expected `(callable(...PhpDb\Adapter\AdapterInterface): ('R.call_user_func() extends mixed))|string`, but possibly received `list{string('PhpDb\Metadata\Source\Factory'), string('createSourceFromAdapter')}`.'''
+count = 1
+
+[[issues]]
+file = "src/SchemaInspector.php"
+code = "unhandled-thrown-type"
+message = 'Potentially unhandled exception `RuntimeException` in `PhpDb\Migration\SchemaInspector::createMetadataFromAdapter`.'
+count = 1
