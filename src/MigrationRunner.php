@@ -6,6 +6,7 @@ namespace PhpDb\Migration;
 
 use DirectoryIterator;
 use PhpDb\Adapter\AdapterInterface;
+use PhpDb\Adapter\Driver\ResultInterface;
 use PhpDb\Metadata\MetadataInterface;
 use PhpDb\Sql\Ddl\Column;
 use PhpDb\Sql\Ddl\Constraint;
@@ -77,7 +78,7 @@ class MigrationRunner
         $sql       = new Sql($this->adapter);
         $sqlString = $sql->buildSqlString($table);
 
-        $this->adapter->query($sqlString, []);
+        $this->runQuery($sqlString);
         $this->inspector->clearCache();
     }
 
@@ -155,7 +156,7 @@ class MigrationRunner
         $this->ensureMigrationsTable();
 
         $sql    = sprintf('SELECT version FROM `%s` ORDER BY version', self::MIGRATIONS_TABLE);
-        $result = $this->adapter->query($sql, [])->toArray();
+        $result = $this->runQuery($sql)->getQueryResult()->toArray();
 
         return array_map(fn ($row) => $row['version'], $result);
     }
@@ -319,7 +320,7 @@ class MigrationRunner
             self::MIGRATIONS_TABLE,
         );
 
-        $this->adapter->query($sql, [$version, $description]);
+        $this->runQuery($sql, [$version, $description]);
     }
 
     /**
@@ -332,7 +333,7 @@ class MigrationRunner
         $this->ensureMigrationsTable();
 
         $sql    = sprintf('SELECT version, description, executed_at FROM `%s`', self::MIGRATIONS_TABLE);
-        $result = $this->adapter->query($sql, [])->toArray();
+        $result = $this->runQuery($sql)->getQueryResult()->toArray();
 
         $details = [];
         foreach ($result as $row) {
@@ -344,5 +345,18 @@ class MigrationRunner
         }
 
         return $details;
+    }
+
+    /**
+     * Prepare and execute a SQL statement.
+     *
+     * Replaces the deprecated AdapterInterface::query() convenience method
+     * with the prepareQuery()/executeQuery() pair it now delegates to.
+     *
+     * @param array<mixed> $params
+     */
+    private function runQuery(string $sql, array $params = []): ResultInterface
+    {
+        return $this->adapter->executeQuery($this->adapter->prepareQuery($sql, $params));
     }
 }

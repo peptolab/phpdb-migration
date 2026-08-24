@@ -57,6 +57,14 @@ class TestableMigration extends AbstractMigration
         $this->ensureIndex($tableName, $indexName, $columns, $unique);
     }
 
+    public function callEnsureCheckConstraint(
+        string $tableName,
+        string $constraintName,
+        string $expression,
+    ): void {
+        $this->ensureCheckConstraint($tableName, $constraintName, $expression);
+    }
+
     public function callEnsureForeignKey(
         string $tableName,
         string $constraintName,

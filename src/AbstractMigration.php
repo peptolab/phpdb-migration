@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace PhpDb\Migration;
 
 use PhpDb\Adapter\AdapterInterface;
+use PhpDb\Adapter\Driver\ResultInterface;
 use PhpDb\Sql\Ddl\AlterTable;
 use PhpDb\Sql\Ddl\Column\Column;
 use PhpDb\Sql\Ddl\Column\ColumnInterface;
@@ -256,6 +257,37 @@ abstract class AbstractMigration implements MigrationInterface
     }
 
     /**
+     * Add a check constraint to a table if it doesn't exist.
+     */
+    protected function ensureCheckConstraint(string $tableName, string $constraintName, string $expression): void
+    {
+        if (! $this->inspector->tableExists($tableName)) {
+            $this->skippedOperations[] = sprintf(
+                'Check constraint "%s.%s" skipped - table does not exist',
+                $tableName,
+                $constraintName,
+            );
+
+            return;
+        }
+
+        if ($this->inspector->constraintExists($tableName, $constraintName)) {
+            $this->skippedOperations[] = sprintf(
+                'Check constraint "%s.%s" already exists',
+                $tableName,
+                $constraintName,
+            );
+
+            return;
+        }
+
+        $alter = new AlterTable($tableName);
+        $alter->addConstraint(new Constraint\Check($expression, $constraintName));
+
+        $this->executeDdl($alter, sprintf('Add check constraint "%s" to "%s"', $constraintName, $tableName));
+    }
+
+    /**
      * Add a foreign key to a table if it doesn't exist.
      *
      * If the FK exists and mismatch strategy is not Ignore, the reference details
@@ -434,7 +466,7 @@ abstract class AbstractMigration implements MigrationInterface
             return;
         }
 
-        $this->adapter->query($sql, []);
+        $this->runQuery($sql);
         $this->executedSql[] = $description ?? $sql;
     }
 
@@ -477,8 +509,21 @@ abstract class AbstractMigration implements MigrationInterface
             return;
         }
 
-        $this->adapter->query($sqlString, []);
+        $this->runQuery($sqlString);
         $this->executedSql[] = $description ?? $sqlString;
+    }
+
+    /**
+     * Prepare and execute a SQL statement.
+     *
+     * Replaces the deprecated AdapterInterface::query() convenience method
+     * with the prepareQuery()/executeQuery() pair it now delegates to.
+     *
+     * @param array<mixed> $params
+     */
+    private function runQuery(string $sql, array $params = []): ResultInterface
+    {
+        return $this->adapter->executeQuery($this->adapter->prepareQuery($sql, $params));
     }
 
     protected function modifyColumn(
@@ -550,7 +595,7 @@ abstract class AbstractMigration implements MigrationInterface
             return;
         }
 
-        $this->adapter->query($sql, $values);
+        $this->runQuery($sql, $values);
         $this->executedSql[] = sprintf('Insert row into "%s"', $tableName);
     }
 
@@ -599,7 +644,7 @@ abstract class AbstractMigration implements MigrationInterface
             return;
         }
 
-        $result = $this->adapter->query($checkSql, $params)->current();
+        $result = $this->runQuery($checkSql, $params)->getQueryResult()->current();
 
         if (($result['cnt'] ?? 0) > 0) {
             $this->skippedOperations[] = sprintf(
@@ -683,7 +728,7 @@ abstract class AbstractMigration implements MigrationInterface
 
         try {
             $sql    = sprintf("SHOW INDEX FROM `%s` WHERE Key_name = '%s'", $tableName, $indexName);
-            $result = $this->adapter->query($sql, [])->toArray();
+            $result = $this->runQuery($sql)->getQueryResult()->toArray();
 
             foreach ($result as $row) {
                 $existingColumns[] = $row['Column_name'];

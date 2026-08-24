@@ -6,6 +6,8 @@ namespace PhpDbTest\Migration;
 
 use PhpDb\Adapter\AdapterInterface;
 use PhpDb\Adapter\Driver\DriverInterface;
+use PhpDb\Adapter\Driver\ResultInterface;
+use PhpDb\Adapter\Driver\StatementInterface;
 use PhpDb\Adapter\Platform\PlatformInterface;
 use PhpDb\Metadata\MetadataInterface;
 use PhpDb\Migration\MigrationInterface;
@@ -47,12 +49,12 @@ class MigrationRunnerTest extends TestCase
         $this->metadata->method('getTableNames')->willReturn([]);
 
         $capturedSql = null;
-        $resultSet   = $this->createResultSet();
-        $this->adapter->method('query')
-            ->willReturnCallback(function (string $sql) use (&$capturedSql, $resultSet) {
+        $this->adapter->method('prepareQuery')
+            ->willReturnCallback(function (string $sql) use (&$capturedSql) {
                 $capturedSql = $sql;
-                return $resultSet;
+                return $this->createMock(StatementInterface::class);
             });
+        $this->adapter->method('executeQuery')->willReturn($this->createResult());
 
         $runner = $this->createRunner();
         $runner->ensureMigrationsTable();
@@ -109,10 +111,10 @@ class MigrationRunnerTest extends TestCase
     {
         $this->metadata->method('getTableNames')->willReturn(['migrations']);
 
-        $resultSet = $this->createResultSet([
+        $this->adapter->method('prepareQuery')->willReturn($this->createMock(StatementInterface::class));
+        $this->adapter->method('executeQuery')->willReturn($this->createResult([
             ['version' => '20260201000000'],
-        ]);
-        $this->adapter->method('query')->willReturn($resultSet);
+        ]));
 
         $migration = $this->createSuccessfulMigration('20260201000000', 'Already applied');
 
@@ -140,9 +142,19 @@ class MigrationRunnerTest extends TestCase
         return $resultSet;
     }
 
+    /** @param array<array<string, mixed>> $rows */
+    private function createResult(array $rows = []): ResultInterface&MockObject
+    {
+        $result = $this->createMock(ResultInterface::class);
+        $result->method('getQueryResult')->willReturn($this->createResultSet($rows));
+
+        return $result;
+    }
+
     private function setupEmptyAppliedVersions(): void
     {
-        $this->adapter->method('query')->willReturn($this->createResultSet());
+        $this->adapter->method('prepareQuery')->willReturn($this->createMock(StatementInterface::class));
+        $this->adapter->method('executeQuery')->willReturn($this->createResult());
     }
 
     private function createSuccessfulMigration(string $version, string $description): MigrationInterface&MockObject

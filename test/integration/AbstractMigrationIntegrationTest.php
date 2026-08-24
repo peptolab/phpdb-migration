@@ -25,26 +25,29 @@ class AbstractMigrationIntegrationTest extends AbstractIntegrationTestCase
         $this->dropTableIfExists('child_table');
         $this->dropTableIfExists('parent_table');
 
-        $this->adapter->query(
+        $this->execute(
             'CREATE TABLE `parent_table` ('
             . '`id` INT UNSIGNED NOT NULL AUTO_INCREMENT, '
             . '`name` VARCHAR(100) NOT NULL, '
             . '`email` VARCHAR(255) NOT NULL, '
             . 'PRIMARY KEY (`id`)'
             . ')',
-            [],
         );
 
-        $this->adapter->query(
+        $this->execute(
             'CREATE TABLE `child_table` ('
             . '`id` INT UNSIGNED NOT NULL AUTO_INCREMENT, '
             . '`parent_id` INT UNSIGNED NOT NULL, '
             . 'PRIMARY KEY (`id`)'
             . ')',
-            [],
         );
 
         $this->inspector->clearCache();
+    }
+
+    private function execute(string $sql): void
+    {
+        $this->adapter->executeQuery($this->adapter->prepareQuery($sql));
     }
 
     protected function tearDown(): void
@@ -113,9 +116,35 @@ class AbstractMigrationIntegrationTest extends AbstractIntegrationTestCase
         self::assertTrue($this->inspector->constraintExists('child_table', 'fk_child_parent'));
     }
 
+    public function testEnsureCheckConstraintCreatesRealConstraint(): void
+    {
+        $migration = new class extends AbstractMigration {
+            public function getVersion(): string
+            {
+                return '20260206000000';
+            }
+
+            public function getDescription(): string
+            {
+                return 'Create check constraint test';
+            }
+
+            protected function define(): void
+            {
+                $this->ensureCheckConstraint('parent_table', 'chk_parent_name', "`name` <> ''");
+            }
+        };
+
+        $result = $migration->up($this->adapter, $this->inspector);
+        self::assertTrue($result->isSuccess());
+
+        $this->inspector->clearCache();
+        self::assertTrue($this->inspector->constraintExists('parent_table', 'chk_parent_name'));
+    }
+
     public function testDropIndexIfExistsRemovesRealIndex(): void
     {
-        $this->adapter->query('CREATE INDEX `idx_parent_name` ON `parent_table` (`name`)', []);
+        $this->execute('CREATE INDEX `idx_parent_name` ON `parent_table` (`name`)');
         $this->inspector->clearCache();
 
         self::assertTrue($this->inspector->indexExists('parent_table', 'idx_parent_name'));
@@ -146,10 +175,9 @@ class AbstractMigrationIntegrationTest extends AbstractIntegrationTestCase
 
     public function testDropForeignKeyIfExistsRemovesRealFK(): void
     {
-        $this->adapter->query(
+        $this->execute(
             'ALTER TABLE `child_table` ADD CONSTRAINT `fk_child_parent_drop` '
             . 'FOREIGN KEY (`parent_id`) REFERENCES `parent_table` (`id`)',
-            [],
         );
         $this->inspector->clearCache();
 

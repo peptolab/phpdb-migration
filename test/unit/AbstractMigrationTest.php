@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace PhpDbTest\Migration;
 
 use PhpDb\Adapter\AdapterInterface;
+use PhpDb\Adapter\Driver\ResultInterface;
+use PhpDb\Adapter\Driver\StatementInterface;
 use PhpDb\Adapter\Platform\PlatformInterface;
 use PhpDb\Metadata\MetadataInterface;
 use PhpDb\Metadata\Object\ColumnObject;
@@ -175,6 +177,64 @@ class AbstractMigrationTest extends TestCase
 
         $migration = $this->createMigration(function (AbstractMigration $m): void {
             $m->callEnsureIndex('users', 'idx_users_email', ['email'], true);
+        });
+
+        $result = $migration->up($adapter, $inspector);
+
+        self::assertTrue($result->isSkipped());
+    }
+
+    public function testEnsureCheckConstraintCreatesNewConstraint(): void
+    {
+        $metadata = $this->createMock(MetadataInterface::class);
+        $metadata->method('getTableNames')->willReturn(['posts']);
+        $metadata->method('getConstraints')->willReturn([]);
+        $adapter = $this->createAdapter();
+        $this->setupQueryCaptureWithShowIndex($adapter);
+        $inspector = new SchemaInspector($adapter, $metadata);
+
+        $migration = $this->createMigration(function (AbstractMigration $m): void {
+            $m->callEnsureCheckConstraint('posts', 'chk_posts_status', "status IN ('draft', 'published')");
+        });
+
+        $result = $migration->up($adapter, $inspector);
+
+        self::assertTrue($result->isSuccess());
+        $ddlQuery = $this->findQuery('CHECK');
+        self::assertNotNull($ddlQuery);
+        self::assertStringContainsString('chk_posts_status', $ddlQuery);
+    }
+
+    public function testEnsureCheckConstraintSkipsExisting(): void
+    {
+        $metadata = $this->createMock(MetadataInterface::class);
+        $metadata->method('getTableNames')->willReturn(['posts']);
+        $constraint = new ConstraintObject('chk_posts_status', 'posts');
+        $constraint->setType('CHECK');
+        $metadata->method('getConstraints')->willReturn([$constraint]);
+        $adapter = $this->createAdapter();
+        $this->setupQueryCaptureWithShowIndex($adapter);
+        $inspector = new SchemaInspector($adapter, $metadata);
+
+        $migration = $this->createMigration(function (AbstractMigration $m): void {
+            $m->callEnsureCheckConstraint('posts', 'chk_posts_status', "status IN ('draft', 'published')");
+        });
+
+        $result = $migration->up($adapter, $inspector);
+
+        self::assertTrue($result->isSkipped());
+    }
+
+    public function testEnsureCheckConstraintSkipsMissingTable(): void
+    {
+        $metadata = $this->createMock(MetadataInterface::class);
+        $metadata->method('getTableNames')->willReturn([]);
+        $adapter = $this->createAdapter();
+        $this->setupQueryCaptureWithShowIndex($adapter);
+        $inspector = new SchemaInspector($adapter, $metadata);
+
+        $migration = $this->createMigration(function (AbstractMigration $m): void {
+            $m->callEnsureCheckConstraint('posts', 'chk_posts_status', "status IN ('draft', 'published')");
         });
 
         $result = $migration->up($adapter, $inspector);
@@ -513,13 +573,23 @@ class AbstractMigrationTest extends TestCase
         return $resultSet;
     }
 
+    /** @param array<array<string, mixed>> $rows */
+    private function createResult(array $rows = []): ResultInterface&MockObject
+    {
+        $result = $this->createMock(ResultInterface::class);
+        $result->method('getQueryResult')->willReturn($this->createResultSet($rows));
+
+        return $result;
+    }
+
     private function setupQueryCapture(AdapterInterface&MockObject $adapter): void
     {
-        $adapter->method('query')
+        $adapter->method('prepareQuery')
             ->willReturnCallback(function (string $sql) {
                 $this->executedQueries[] = $sql;
-                return $this->createResultSet();
+                return $this->createMock(StatementInterface::class);
             });
+        $adapter->method('executeQuery')->willReturn($this->createResult());
     }
 
     /** @param array<array<string, string>> $indexRows */
@@ -527,13 +597,17 @@ class AbstractMigrationTest extends TestCase
         AdapterInterface&MockObject $adapter,
         array $indexRows = [],
     ): void {
-        $adapter->method('query')
-            ->willReturnCallback(function (string $sql) use ($indexRows) {
+        $adapter->method('prepareQuery')
+            ->willReturnCallback(function (string $sql) {
                 $this->executedQueries[] = $sql;
-                if (str_contains($sql, 'SHOW INDEX')) {
-                    return $this->createResultSet($indexRows);
-                }
-                return $this->createResultSet();
+                return $this->createMock(StatementInterface::class);
+            });
+        $adapter->method('executeQuery')
+            ->willReturnCallback(function () use ($indexRows) {
+                $sql = $this->executedQueries[count($this->executedQueries) - 1] ?? '';
+                return str_contains($sql, 'SHOW INDEX')
+                    ? $this->createResult($indexRows)
+                    : $this->createResult();
             });
     }
 

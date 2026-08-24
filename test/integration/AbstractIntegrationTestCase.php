@@ -65,6 +65,6 @@ abstract class AbstractIntegrationTestCase extends TestCase
         $sql       = new Sql($this->adapter);
         $sqlString = $sql->buildSqlString($drop);
 
-        $this->adapter->query($sqlString, []);
+        $this->adapter->executeQuery($this->adapter->prepareQuery($sqlString));
     }
 }

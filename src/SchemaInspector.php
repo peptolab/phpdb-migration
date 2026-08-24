@@ -335,7 +335,7 @@ class SchemaInspector
         // MySQL stores indexes differently, query them separately
         try {
             $sql    = "SHOW INDEX FROM `{$tableName}`";
-            $result = $this->adapter->query($sql, [])->toArray();
+            $result = $this->adapter->executeQuery($this->adapter->prepareQuery($sql))->getQueryResult()->toArray();
 
             foreach ($result as $row) {
                 $indexName                                = $row['Key_name'];

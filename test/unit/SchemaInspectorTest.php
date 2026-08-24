@@ -147,7 +147,7 @@ class SchemaInspectorTest extends TestCase
             ->willReturn([$constraint]);
 
         // Mock the adapter query for SHOW INDEX to avoid errors
-        $this->adapter->method('query')
+        $this->adapter->method('prepareQuery')
             ->willThrowException(new Exception('Not supported'));
 
         self::assertTrue($this->inspector->constraintExists('users', 'uk_users_email'));
@@ -173,7 +173,7 @@ class SchemaInspectorTest extends TestCase
             ->with('posts')
             ->willReturn([$constraint]);
 
-        $this->adapter->method('query')
+        $this->adapter->method('prepareQuery')
             ->willThrowException(new Exception('Not supported'));
 
         self::assertTrue($this->inspector->foreignKeyExists('posts', 'fk_posts_user'));

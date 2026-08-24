@@ -126,6 +126,7 @@ class Version20260101000000CreateUsersTable extends AbstractMigration
 - `ensureIndex(string $table, string $name, array $columns, bool $unique = false)` - Add index if not exists
 - `ensureUniqueKey(string $table, string $name, array $columns)` - Add unique constraint if not exists
 - `ensureForeignKey(string $table, string $name, string $col, string $refTable, string $refCol, string $onDelete, string $onUpdate)` - Add FK if not exists
+- `ensureCheckConstraint(string $table, string $name, string $expression)` - Add check constraint if not exists
 
 ### Schema Removal
 - `dropTableIfExists(string $table)`
