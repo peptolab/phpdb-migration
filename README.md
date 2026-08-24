@@ -202,6 +202,24 @@ This generates a timestamped migration file in the configured migrations directo
 
 See the [docs/examples](docs/examples/) directory for complete migration examples.
 
+## Development
+
+```bash
+composer install
+
+composer cs-check        # Mago format + lint check
+composer cs-fix          # Mago format + lint --fix
+composer static-analysis # Mago analyze
+composer test             # unit test suite (test/unit)
+composer test-integration # integration suite (test/integration) — needs a MySQL 8.0 database, see phpunit.xml.dist for connection env vars
+composer check            # cs-check + static-analysis + test, same as CI
+```
+
+Coding standards and static analysis are provided by
+[php-db/phpdb-qa-tools](https://github.com/php-db/phpdb-qa-tools) (see
+`mago.toml`); install the [Mago](https://mago.carthage.software/) binary
+once per machine before running `cs-check`/`cs-fix`/`static-analysis`.
+
 ## License
 
 BSD-3-Clause. See [LICENSE](LICENSE).
