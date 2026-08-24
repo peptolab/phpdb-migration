@@ -2,6 +2,10 @@
 
 Idempotent database migration engine for [php-db/phpdb](https://github.com/php-db/phpdb).
 
+> This README is a quick reference. See the [full guide](docs/guide.md) for
+> an introduction, a complete helper method reference, mismatch strategy
+> details, advanced usage, and known limitations.
+
 ## Features
 
 - **Idempotent migrations** - Safe to run multiple times; operations check schema state before executing
