@@ -8,6 +8,7 @@ use Exception;
 use Override;
 use PhpDb\Migration\MigrationRunner;
 use PhpDb\Migration\MismatchStrategy;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Input\InputOption;
@@ -17,12 +18,9 @@ use Symfony\Component\Console\Style\SymfonyStyle;
 use function count;
 use function sprintf;
 
+#[AsCommand(name: 'db:migrate', description: 'Run database migrations')]
 class DbMigrateCommand extends Command
 {
-    protected static ?string $defaultName = 'db:migrate';
-
-    protected static ?string $defaultDescription = 'Run database migrations';
-
     public function __construct(
         private readonly MigrationRunner $runner,
     ) {

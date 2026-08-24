@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace PhpDb\Migration\Command;
 
 use Override;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -20,12 +21,9 @@ use function sprintf;
 use function str_replace;
 use function ucwords;
 
+#[AsCommand(name: 'db:migrate:create', description: 'Create a new database migration')]
 class DbMigrateCreateCommand extends Command
 {
-    protected static ?string $defaultName = 'db:migrate:create';
-
-    protected static ?string $defaultDescription = 'Create a new database migration';
-
     public function __construct(
         private readonly string $migrationsPath,
         private readonly string $migrationsNamespace,
