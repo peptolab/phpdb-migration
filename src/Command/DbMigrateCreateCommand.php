@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace PhpDb\Migration\Command;
 
+use Override;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
@@ -19,12 +21,9 @@ use function sprintf;
 use function str_replace;
 use function ucwords;
 
+#[AsCommand(name: 'db:migrate:create', description: 'Create a new database migration')]
 class DbMigrateCreateCommand extends Command
 {
-    protected static ?string $defaultName = 'db:migrate:create';
-
-    protected static ?string $defaultDescription = 'Create a new database migration';
-
     public function __construct(
         private readonly string $migrationsPath,
         private readonly string $migrationsNamespace,
@@ -32,10 +31,10 @@ class DbMigrateCreateCommand extends Command
         parent::__construct();
     }
 
+    #[Override]
     protected function configure(): void
     {
-        $this
-            ->setHelp('Creates a new migration file with boilerplate code')
+        $this->setHelp('Creates a new migration file with boilerplate code')
             ->addArgument(
                 'description',
                 InputArgument::REQUIRED,
@@ -43,6 +42,7 @@ class DbMigrateCreateCommand extends Command
             );
     }
 
+    #[Override]
     protected function execute(InputInterface $input, OutputInterface $output): int
     {
         $io = new SymfonyStyle($input, $output);
@@ -55,16 +55,16 @@ class DbMigrateCreateCommand extends Command
 
         // Auto-create migrations directory if missing
         if (! is_dir($this->migrationsPath)) {
-            if (! mkdir($this->migrationsPath, 0755, true)) {
-                $io->error('Failed to create migrations directory: ' . $this->migrationsPath);
+            if (! mkdir($this->migrationsPath, 0o755, true)) {
+                $io->error("Failed to create migrations directory: {$this->migrationsPath}");
 
                 return Command::FAILURE;
             }
 
-            $io->note('Created migrations directory: ' . $this->migrationsPath);
+            $io->note("Created migrations directory: {$this->migrationsPath}");
         }
 
-        $filePath = $this->migrationsPath . '/' . $filename;
+        $filePath = "{$this->migrationsPath}/{$filename}";
         $content  = $this->generateMigrationContent($timestamp, $className, $description);
 
         if (file_put_contents($filePath, $content) === false) {
@@ -73,8 +73,8 @@ class DbMigrateCreateCommand extends Command
             return Command::FAILURE;
         }
 
-        $io->success('Created migration: ' . $filename);
-        $io->text('Path: ' . $filePath);
+        $io->success("Created migration: {$filename}");
+        $io->text("Path: {$filePath}");
 
         return Command::SUCCESS;
     }

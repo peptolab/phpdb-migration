@@ -17,8 +17,8 @@
     },
     "config": {
         "sort-packages": true,
-        "allow-plugins": {
-            "dealerdirect/phpcodesniffer-composer-installer": true
+        "platform": {
+            "php": "8.3.99"
         }
     },
     "extra": {
@@ -28,14 +28,14 @@
     },
     "require": {
         "php": "^8.3",
-        "php-db/phpdb": "^0.6.x-dev",
-        "symfony/console": "^6.0 || ^7.0"
+        "php-db/phpdb": "^0.6.0",
+        "symfony/console": "^7.2",
+        "symfony/string": "^7.2"
     },
     "require-dev": {
-        "laminas/laminas-coding-standard": "^3.0",
-        "php-db/phpdb-mysql": "0.2.x-dev",
-        "phpstan/phpstan": "^2.0",
-        "phpunit/phpunit": "^11.0"
+        "php-db/phpdb-mysql": "0.5.x-dev",
+        "php-db/phpdb-qa-tools": "0.1.x-dev",
+        "phpunit/phpunit": "^11.5.42"
     },
     "suggest": {
         "laminas/laminas-servicemanager": "For container-based factory integration (^3.0 || ^4.0)",
@@ -48,19 +48,28 @@
     },
     "autoload-dev": {
         "psr-4": {
-            "PhpDbTest\\Migration\\": "test/"
+            "PhpDbTest\\Migration\\Asset\\": "test/asset/",
+            "PhpDbTest\\Migration\\": "test/unit/",
+            "PhpDbIntegrationTest\\Migration\\": "test/integration/"
         }
     },
     "scripts": {
         "check": [
             "@cs-check",
-            "@phpstan",
+            "@static-analysis",
             "@test"
         ],
-        "cs-check": "phpcs",
-        "cs-fix": "phpcbf",
-        "phpstan": "phpstan analyse",
-        "test": "phpunit --colors=always",
+        "cs-check": [
+            "mago format --check",
+            "mago lint"
+        ],
+        "cs-fix": [
+            "mago format",
+            "mago lint --fix"
+        ],
+        "static-analysis": "mago analyze",
+        "test": "phpunit --colors=always --testsuite \"unit test\"",
+        "test-integration": "phpunit --colors=always --testsuite \"integration test\"",
         "test-coverage": "phpunit --colors=always --coverage-clover clover.xml"
     }
 }

@@ -2,6 +2,10 @@
 
 Idempotent database migration engine for [php-db/phpdb](https://github.com/php-db/phpdb).
 
+> This README is a quick reference. See the [full guide](docs/guide.md) for
+> an introduction, a complete helper method reference, mismatch strategy
+> details, advanced usage, and known limitations.
+
 ## Features
 
 - **Idempotent migrations** - Safe to run multiple times; operations check schema state before executing
@@ -126,6 +130,7 @@ class Version20260101000000CreateUsersTable extends AbstractMigration
 - `ensureIndex(string $table, string $name, array $columns, bool $unique = false)` - Add index if not exists
 - `ensureUniqueKey(string $table, string $name, array $columns)` - Add unique constraint if not exists
 - `ensureForeignKey(string $table, string $name, string $col, string $refTable, string $refCol, string $onDelete, string $onUpdate)` - Add FK if not exists
+- `ensureCheckConstraint(string $table, string $name, string $expression)` - Add check constraint if not exists
 
 ### Schema Removal
 - `dropTableIfExists(string $table)`
@@ -196,6 +201,24 @@ This generates a timestamped migration file in the configured migrations directo
 ## Examples
 
 See the [docs/examples](docs/examples/) directory for complete migration examples.
+
+## Development
+
+```bash
+composer install
+
+composer cs-check        # Mago format + lint check
+composer cs-fix          # Mago format + lint --fix
+composer static-analysis # Mago analyze
+composer test             # unit test suite (test/unit)
+composer test-integration # integration suite (test/integration) — needs a MySQL 8.0 database, see phpunit.xml.dist for connection env vars
+composer check            # cs-check + static-analysis + test, same as CI
+```
+
+Coding standards and static analysis are provided by
+[php-db/phpdb-qa-tools](https://github.com/php-db/phpdb-qa-tools) (see
+`mago.toml`); install the [Mago](https://mago.carthage.software/) binary
+once per machine before running `cs-check`/`cs-fix`/`static-analysis`.
 
 ## License
 

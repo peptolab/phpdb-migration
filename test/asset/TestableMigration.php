@@ -1,0 +1,151 @@
+<?php
+
+declare(strict_types=1);
+
+namespace PhpDbTest\Migration\Asset;
+
+use PhpDb\Migration\AbstractMigration;
+use PhpDb\Sql\Ddl\Column;
+use PhpDb\Sql\Ddl\CreateTable;
+
+class TestableMigration extends AbstractMigration
+{
+    /** @var callable(TestableMigration): void */
+    private $defineCallback;
+
+    /**
+     * @param callable(TestableMigration): void $defineCallback
+     */
+    public function __construct(callable $defineCallback)
+    {
+        $this->defineCallback = $defineCallback;
+    }
+
+    public function callDropColumnIfExists(string $tableName, string $columnName): void
+    {
+        $this->dropColumnIfExists($tableName, $columnName);
+    }
+
+    public function callDropForeignKeyIfExists(string $tableName, string $constraintName): void
+    {
+        $this->dropForeignKeyIfExists($tableName, $constraintName);
+    }
+
+    public function callDropIndexIfExists(string $tableName, string $indexName): void
+    {
+        $this->dropIndexIfExists($tableName, $indexName);
+    }
+
+    public function callDropTableIfExists(string $tableName): void
+    {
+        $this->dropTableIfExists($tableName);
+    }
+
+    public function callEnsureCheckConstraint(
+        string $tableName,
+        string $constraintName,
+        string $expression,
+    ): void {
+        $this->ensureCheckConstraint($tableName, $constraintName, $expression);
+    }
+
+    public function callEnsureColumn(string $tableName, Column\ColumnInterface $column): void
+    {
+        $this->ensureColumn($tableName, $column);
+    }
+
+    public function callEnsureForeignKey(
+        string $tableName,
+        string $constraintName,
+        string $column,
+        string $referenceTable,
+        string $referenceColumn,
+        string $onDelete = 'RESTRICT',
+        string $onUpdate = 'RESTRICT',
+    ): void {
+        $this->ensureForeignKey(
+            $tableName,
+            $constraintName,
+            $column,
+            $referenceTable,
+            $referenceColumn,
+            $onDelete,
+            $onUpdate,
+        );
+    }
+
+    /** @param array<string> $columns */
+    public function callEnsureIndex(
+        string $tableName,
+        string $indexName,
+        array $columns,
+        bool $unique = false,
+    ): void {
+        $this->ensureIndex($tableName, $indexName, $columns, $unique);
+    }
+
+    /** @param callable(CreateTable): void $callback */
+    public function callEnsureTable(string $tableName, callable $callback): void
+    {
+        $this->ensureTable($tableName, $callback);
+    }
+
+    /** @param array<string> $columns */
+    public function callEnsureUniqueKey(string $tableName, string $keyName, array $columns): void
+    {
+        $this->ensureUniqueKey($tableName, $keyName, $columns);
+    }
+
+    public function callExecuteSql(string $sql, ?string $description = null): void
+    {
+        $this->executeSql($sql, $description);
+    }
+
+    public function callExecuteSqlIf(
+        bool $condition,
+        string $sql,
+        ?string $description = null,
+        ?string $skipMessage = null,
+    ): void {
+        $this->executeSqlIf($condition, $sql, $description, $skipMessage);
+    }
+
+    /** @param array<string, mixed> $data */
+    public function callInsertRow(string $tableName, array $data): void
+    {
+        $this->insertRow($tableName, $data);
+    }
+
+    /**
+     * @param array<string, mixed> $data
+     * @param array<string>        $uniqueColumns
+     */
+    public function callInsertRowIfNotExists(string $tableName, array $data, array $uniqueColumns): void
+    {
+        $this->insertRowIfNotExists($tableName, $data, $uniqueColumns);
+    }
+
+    public function callModifyColumn(
+        string $tableName,
+        string $columnName,
+        Column\Column $column,
+        ?string $newName = null,
+    ): void {
+        $this->modifyColumn($tableName, $columnName, $column, $newName);
+    }
+
+    public function getDescription(): string
+    {
+        return 'Test migration';
+    }
+
+    public function getVersion(): string
+    {
+        return '20260101000000';
+    }
+
+    protected function define(): void
+    {
+        ($this->defineCallback)($this);
+    }
+}

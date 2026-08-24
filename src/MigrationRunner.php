@@ -6,6 +6,8 @@ namespace PhpDb\Migration;
 
 use DirectoryIterator;
 use PhpDb\Adapter\AdapterInterface;
+use PhpDb\Adapter\Driver\ResultInterface;
+use PhpDb\Adapter\Exception\RuntimeException as AdapterRuntimeException;
 use PhpDb\Metadata\MetadataInterface;
 use PhpDb\Sql\Ddl\Column;
 use PhpDb\Sql\Ddl\Constraint;
@@ -43,42 +45,6 @@ class MigrationRunner
         ?MetadataInterface $metadata = null,
     ) {
         $this->inspector = new SchemaInspector($adapter, $metadata);
-    }
-
-    /**
-     * Ensure the migrations tracking table exists.
-     */
-    public function ensureMigrationsTable(): void
-    {
-        if ($this->inspector->tableExists(self::MIGRATIONS_TABLE)) {
-            return;
-        }
-
-        $table = new CreateTable(self::MIGRATIONS_TABLE);
-        $table->ifNotExists();
-
-        $id = new Column\Integer('id');
-        $id->setOption('unsigned', true);
-        $id->setOption('auto_increment', true);
-        $table->addColumn($id);
-
-        $version = new Column\Varchar('version', 14);
-        $table->addColumn($version);
-
-        $description = new Column\Varchar('description', 255);
-        $table->addColumn($description);
-
-        $executedAt = new Column\Datetime('executed_at');
-        $table->addColumn($executedAt);
-
-        $table->addConstraint(new Constraint\PrimaryKey(['id']));
-        $table->addConstraint(new Constraint\UniqueKey(['version'], 'uk_migrations_version'));
-
-        $sql       = new Sql($this->adapter);
-        $sqlString = $sql->buildSqlString($table);
-
-        $this->adapter->query($sqlString, []);
-        $this->inspector->clearCache();
     }
 
     /**
@@ -137,8 +103,10 @@ class MigrationRunner
         }
 
         // Sort by version (timestamp)
-        usort($migrations, fn (MigrationInterface $a, MigrationInterface $b) =>
-            $a->getVersion() <=> $b->getVersion());
+        usort(
+            $migrations,
+            static fn(MigrationInterface $a, MigrationInterface $b) => $a->getVersion() <=> $b->getVersion(),
+        );
 
         $this->discoveredMigrations = $migrations;
 
@@ -146,18 +114,72 @@ class MigrationRunner
     }
 
     /**
+     * Ensure the migrations tracking table exists.
+     */
+    public function ensureMigrationsTable(): void
+    {
+        if ($this->inspector->tableExists(self::MIGRATIONS_TABLE)) {
+            return;
+        }
+
+        $table = new CreateTable(self::MIGRATIONS_TABLE);
+        $table->ifNotExists();
+
+        $id = new Column\Integer('id');
+        $id->setOption('unsigned', true);
+        $id->setOption('auto_increment', true);
+        $table->addColumn($id);
+
+        $version = new Column\Varchar('version', 14);
+        $table->addColumn($version);
+
+        $description = new Column\Varchar('description', 255);
+        $table->addColumn($description);
+
+        $executedAt = new Column\Datetime('executed_at');
+        $table->addColumn($executedAt);
+
+        $table->addConstraint(new Constraint\PrimaryKey(['id']));
+        $table->addConstraint(new Constraint\UniqueKey(['version'], 'uk_migrations_version'));
+
+        $sql       = new Sql($this->adapter);
+        $sqlString = $sql->buildSqlString($table);
+
+        $this->runQuery($sqlString);
+        $this->inspector->clearCache();
+    }
+
+    /**
      * Get versions that have already been applied.
      *
      * @return array<string>
+     *
+     * @throws AdapterRuntimeException
      */
     public function getAppliedVersions(): array
     {
         $this->ensureMigrationsTable();
 
         $sql    = sprintf('SELECT version FROM `%s` ORDER BY version', self::MIGRATIONS_TABLE);
-        $result = $this->adapter->query($sql, [])->toArray();
+        $result = $this->runQuery($sql)->getQueryResult()->toArray();
 
-        return array_map(fn ($row) => $row['version'], $result);
+        return array_map(static fn(array $row): string => (string) $row['version'], $result);
+    }
+
+    /**
+     * Get the schema inspector instance.
+     */
+    public function getInspector(): SchemaInspector
+    {
+        return $this->inspector;
+    }
+
+    /**
+     * Get the configured mismatch strategy.
+     */
+    public function getMismatchStrategy(): MismatchStrategy
+    {
+        return $this->mismatchStrategy;
     }
 
     /**
@@ -170,8 +192,7 @@ class MigrationRunner
         $all     = $this->discoverMigrations();
         $applied = $this->getAppliedVersions();
 
-        return array_filter($all, fn (MigrationInterface $m) =>
-            ! in_array($m->getVersion(), $applied, true));
+        return array_filter($all, static fn(MigrationInterface $m) => ! in_array($m->getVersion(), $applied, true));
     }
 
     /**
@@ -193,7 +214,7 @@ class MigrationRunner
             $status[] = [
                 'version'     => $version,
                 'description' => $migration->getDescription(),
-                'status'      => $appliedInfo !== null ? 'applied' : 'pending',
+                'status'      => null !== $appliedInfo ? 'applied' : 'pending',
                 'executed_at' => $appliedInfo['executed_at'] ?? null,
             ];
         }
@@ -202,23 +223,24 @@ class MigrationRunner
     }
 
     /**
-     * Run all pending migrations.
+     * Preview SQL for pending migrations without executing.
      *
-     * @return array<array{version: string, description: string, result: MigrationResult}>
+     * @return array<array{version: string, description: string, sql: array<string>}>
      */
-    public function runPending(): array
+    public function previewPending(): array
     {
-        $pending = $this->getPendingMigrations();
-        $results = [];
+        $pending  = $this->getPendingMigrations();
+        $previews = [];
 
         foreach ($pending as $migration) {
-            $results[] = $this->runMigration($migration);
-
-            // Clear inspector cache between migrations
-            $this->inspector->clearCache();
+            $previews[] = [
+                'version'     => $migration->getVersion(),
+                'description' => $migration->getDescription(),
+                'sql'         => $migration->preview($this->adapter, $this->inspector),
+            ];
         }
 
-        return $results;
+        return $previews;
     }
 
     /**
@@ -273,44 +295,57 @@ class MigrationRunner
     }
 
     /**
-     * Preview SQL for pending migrations without executing.
+     * Run all pending migrations.
      *
-     * @return array<array{version: string, description: string, sql: array<string>}>
+     * @return array<array{version: string, description: string, result: MigrationResult}>
      */
-    public function previewPending(): array
+    public function runPending(): array
     {
-        $pending  = $this->getPendingMigrations();
-        $previews = [];
+        $pending = $this->getPendingMigrations();
+        $results = [];
 
         foreach ($pending as $migration) {
-            $previews[] = [
-                'version'     => $migration->getVersion(),
-                'description' => $migration->getDescription(),
-                'sql'         => $migration->preview($this->adapter, $this->inspector),
+            $results[] = $this->runMigration($migration);
+
+            // Clear inspector cache between migrations
+            $this->inspector->clearCache();
+        }
+
+        return $results;
+    }
+
+    /**
+     * Get details of applied migrations.
+     *
+     * @return array<string, array{version: string, description: string, executed_at: string}>
+     *
+     * @throws AdapterRuntimeException
+     */
+    private function getAppliedMigrationDetails(): array
+    {
+        $this->ensureMigrationsTable();
+
+        $sql    = sprintf('SELECT version, description, executed_at FROM `%s`', self::MIGRATIONS_TABLE);
+        $result = $this->runQuery($sql)->getQueryResult()->toArray();
+
+        $details = [];
+        foreach ($result as $row) {
+            $version = (string) $row['version'];
+
+            $details[$version] = [
+                'version'     => $version,
+                'description' => (string) $row['description'],
+                'executed_at' => (string) $row['executed_at'],
             ];
         }
 
-        return $previews;
-    }
-
-    /**
-     * Get the schema inspector instance.
-     */
-    public function getInspector(): SchemaInspector
-    {
-        return $this->inspector;
-    }
-
-    /**
-     * Get the configured mismatch strategy.
-     */
-    public function getMismatchStrategy(): MismatchStrategy
-    {
-        return $this->mismatchStrategy;
+        return $details;
     }
 
     /**
      * Record a migration as applied.
+     *
+     * @throws AdapterRuntimeException
      */
     private function recordMigration(string $version, string $description): void
     {
@@ -319,30 +354,21 @@ class MigrationRunner
             self::MIGRATIONS_TABLE,
         );
 
-        $this->adapter->query($sql, [$version, $description]);
+        $this->runQuery($sql, [$version, $description]);
     }
 
     /**
-     * Get details of applied migrations.
+     * Prepare and execute a SQL statement.
      *
-     * @return array<string, array{version: string, description: string, executed_at: string}>
+     * Replaces the deprecated AdapterInterface::query() convenience method
+     * with the prepareQuery()/executeQuery() pair it now delegates to.
+     *
+     * @param array<mixed> $params
+     *
+     * @throws AdapterRuntimeException
      */
-    private function getAppliedMigrationDetails(): array
+    private function runQuery(string $sql, array $params = []): ResultInterface
     {
-        $this->ensureMigrationsTable();
-
-        $sql    = sprintf('SELECT version, description, executed_at FROM `%s`', self::MIGRATIONS_TABLE);
-        $result = $this->adapter->query($sql, [])->toArray();
-
-        $details = [];
-        foreach ($result as $row) {
-            $details[$row['version']] = [
-                'version'     => $row['version'],
-                'description' => $row['description'],
-                'executed_at' => $row['executed_at'],
-            ];
-        }
-
-        return $details;
+        return $this->adapter->executeQuery($this->adapter->prepareQuery($sql, $params));
     }
 }

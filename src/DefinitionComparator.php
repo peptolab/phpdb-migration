@@ -53,7 +53,7 @@ class DefinitionComparator
         $desiredType  = $this->resolveDataType($desired);
         $existingType = strtolower((string) ($existing['type'] ?? ''));
 
-        if ($desiredType !== null && $existingType !== strtolower($desiredType)) {
+        if (null !== $desiredType && strtolower($desiredType) !== $existingType) {
             $mismatches[] = [
                 'table'    => $tableName,
                 'column'   => $columnName,
@@ -67,7 +67,7 @@ class DefinitionComparator
         $desiredNullable  = $desired->isNullable();
         $existingNullable = $existing['nullable'] ?? null;
 
-        if ($existingNullable !== null && $desiredNullable !== $existingNullable) {
+        if (null !== $existingNullable && $desiredNullable !== $existingNullable) {
             $mismatches[] = [
                 'table'    => $tableName,
                 'column'   => $columnName,
@@ -82,7 +82,7 @@ class DefinitionComparator
             $desiredLength  = $desired->getLength();
             $existingLength = $existing['maxLength'] ?? null;
 
-            if ($desiredLength !== null && $existingLength !== null && $desiredLength !== $existingLength) {
+            if (null !== $desiredLength && null !== $existingLength && $desiredLength !== $existingLength) {
                 $mismatches[] = [
                     'table'    => $tableName,
                     'column'   => $columnName,
@@ -100,7 +100,7 @@ class DefinitionComparator
             $existingPrecision = $existing['numericPrecision'] ?? null;
             $existingScale     = $existing['numericScale'] ?? null;
 
-            if ($desiredDigits !== null && $existingPrecision !== null && $desiredDigits !== $existingPrecision) {
+            if (null !== $desiredDigits && null !== $existingPrecision && $desiredDigits !== $existingPrecision) {
                 $mismatches[] = [
                     'table'    => $tableName,
                     'column'   => $columnName,
@@ -110,7 +110,7 @@ class DefinitionComparator
                 ];
             }
 
-            if ($desiredPrecision !== null && $existingScale !== null && $desiredPrecision !== $existingScale) {
+            if (null !== $desiredPrecision && null !== $existingScale && $desiredPrecision !== $existingScale) {
                 $mismatches[] = [
                     'table'    => $tableName,
                     'column'   => $columnName,
@@ -127,7 +127,7 @@ class DefinitionComparator
             $desiredUnsigned  = $options['unsigned'] ?? null;
             $existingUnsigned = $existing['numericUnsigned'] ?? null;
 
-            if ($desiredUnsigned !== null && $existingUnsigned !== null) {
+            if (null !== $desiredUnsigned && null !== $existingUnsigned) {
                 $desiredBool = (bool) $desiredUnsigned;
                 if ($desiredBool !== $existingUnsigned) {
                     $mismatches[] = [
@@ -139,37 +139,6 @@ class DefinitionComparator
                     ];
                 }
             }
-        }
-
-        return $mismatches;
-    }
-
-    /**
-     * Compare index columns.
-     *
-     * @param array<string> $existingColumns
-     * @param array<string> $desiredColumns
-     * @return array<array{table: string, column: string, field: string, expected: string, actual: string}>
-     */
-    public function compareIndex(
-        string $tableName,
-        string $indexName,
-        array $existingColumns,
-        array $desiredColumns,
-    ): array {
-        $mismatches = [];
-
-        $diff  = array_diff($desiredColumns, $existingColumns);
-        $extra = array_diff($existingColumns, $desiredColumns);
-
-        if ($diff !== [] || $extra !== []) {
-            $mismatches[] = [
-                'table'    => $tableName,
-                'column'   => $indexName,
-                'field'    => 'columns',
-                'expected' => implode(', ', $desiredColumns),
-                'actual'   => implode(', ', $existingColumns),
-            ];
         }
 
         return $mismatches;
@@ -243,6 +212,37 @@ class DefinitionComparator
                 'field'    => 'onUpdate',
                 'expected' => $desiredOnUpdate,
                 'actual'   => $existingOnUpdate,
+            ];
+        }
+
+        return $mismatches;
+    }
+
+    /**
+     * Compare index columns.
+     *
+     * @param array<string> $existingColumns
+     * @param array<string> $desiredColumns
+     * @return array<array{table: string, column: string, field: string, expected: string, actual: string}>
+     */
+    public function compareIndex(
+        string $tableName,
+        string $indexName,
+        array $existingColumns,
+        array $desiredColumns,
+    ): array {
+        $mismatches = [];
+
+        $diff  = array_diff($desiredColumns, $existingColumns);
+        $extra = array_diff($existingColumns, $desiredColumns);
+
+        if ([] !== $diff || [] !== $extra) {
+            $mismatches[] = [
+                'table'    => $tableName,
+                'column'   => $indexName,
+                'field'    => 'columns',
+                'expected' => implode(', ', $desiredColumns),
+                'actual'   => implode(', ', $existingColumns),
             ];
         }
 

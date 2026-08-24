@@ -16,6 +16,11 @@ use PhpDb\Adapter\AdapterInterface;
 interface MigrationInterface
 {
     /**
+     * Get a human-readable description of this migration.
+     */
+    public function getDescription(): string;
+
+    /**
      * Get the migration version (14-digit timestamp: YYYYMMDDHHMMSS).
      *
      * This version is used for ordering migrations and tracking which have been applied.
@@ -23,9 +28,11 @@ interface MigrationInterface
     public function getVersion(): string;
 
     /**
-     * Get a human-readable description of this migration.
+     * Preview the SQL that would be executed without making any changes.
+     *
+     * @return array<string> List of SQL statements that would be executed
      */
-    public function getDescription(): string;
+    public function preview(AdapterInterface $adapter, SchemaInspector $inspector): array;
 
     /**
      * Execute the migration.
@@ -35,11 +42,4 @@ interface MigrationInterface
      * schema state before making changes.
      */
     public function up(AdapterInterface $adapter, SchemaInspector $inspector): MigrationResult;
-
-    /**
-     * Preview the SQL that would be executed without making any changes.
-     *
-     * @return array<string> List of SQL statements that would be executed
-     */
-    public function preview(AdapterInterface $adapter, SchemaInspector $inspector): array;
 }

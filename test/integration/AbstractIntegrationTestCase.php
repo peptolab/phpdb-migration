@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace PhpDbTest\Migration\Integration;
+namespace PhpDbIntegrationTest\Migration;
 
 use PhpDb\Adapter\Adapter;
 use PhpDb\Adapter\AdapterInterface;
@@ -22,6 +22,21 @@ abstract class AbstractIntegrationTestCase extends TestCase
 {
     protected AdapterInterface $adapter;
 
+    protected function dropTableIfExists(string $tableName): void
+    {
+        if (! isset($this->adapter)) {
+            return;
+        }
+
+        $drop = new DropTable($tableName);
+        $drop->ifExists();
+
+        $sql       = new Sql($this->adapter);
+        $sqlString = $sql->buildSqlString($drop);
+
+        $this->adapter->executeQuery($this->adapter->prepareQuery($sqlString));
+    }
+
     protected function setUp(): void
     {
         $host = getenv('DB_HOST') ?: $_ENV['DB_HOST'] ?? '';
@@ -30,7 +45,7 @@ abstract class AbstractIntegrationTestCase extends TestCase
         $pass = getenv('DB_PASS') ?: $_ENV['DB_PASS'] ?? '';
         $port = getenv('DB_PORT') ?: $_ENV['DB_PORT'] ?? '3306';
 
-        if ($host === '' || $name === '') {
+        if ('' === $host || '' === $name) {
             self::markTestSkipped('Database not configured (set DB_HOST, DB_NAME env vars)');
         }
 
@@ -49,22 +64,7 @@ abstract class AbstractIntegrationTestCase extends TestCase
             $this->adapter = new Adapter($driver, $platform);
             $this->adapter->getDriver()->getConnection()->connect();
         } catch (Throwable $e) {
-            self::markTestSkipped('Database connection failed: ' . $e->getMessage());
+            self::markTestSkipped("Database connection failed: {$e->getMessage()}");
         }
-    }
-
-    protected function dropTableIfExists(string $tableName): void
-    {
-        if (! isset($this->adapter)) {
-            return;
-        }
-
-        $drop = new DropTable($tableName);
-        $drop->ifExists();
-
-        $sql       = new Sql($this->adapter);
-        $sqlString = $sql->buildSqlString($drop);
-
-        $this->adapter->query($sqlString, []);
     }
 }

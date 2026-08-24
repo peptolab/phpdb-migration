@@ -30,7 +30,27 @@ final class MigrationResult
         public readonly array $skippedOperations = [],
         public readonly ?string $errorMessage = null,
         public readonly array $mismatches = [],
-    ) {
+    ) {}
+
+    /**
+     * Create a failed result.
+     *
+     * @param array<string> $executedSql SQL executed before failure
+     */
+    public static function failed(string $errorMessage, array $executedSql = []): self
+    {
+        return new self(self::STATUS_FAILED, $executedSql, [], $errorMessage);
+    }
+
+    /**
+     * Create a skipped result (migration was already applied).
+     *
+     * @param array<string> $skippedOperations
+     * @param array<array{table: string, column: string, field: string, expected: string, actual: string}> $mismatches
+     */
+    public static function skipped(array $skippedOperations = [], array $mismatches = []): self
+    {
+        return new self(self::STATUS_SKIPPED, [], $skippedOperations, null, $mismatches);
     }
 
     /**
@@ -49,42 +69,6 @@ final class MigrationResult
     }
 
     /**
-     * Create a skipped result (migration was already applied).
-     *
-     * @param array<string> $skippedOperations
-     * @param array<array{table: string, column: string, field: string, expected: string, actual: string}> $mismatches
-     */
-    public static function skipped(array $skippedOperations = [], array $mismatches = []): self
-    {
-        return new self(self::STATUS_SKIPPED, [], $skippedOperations, null, $mismatches);
-    }
-
-    /**
-     * Create a failed result.
-     *
-     * @param array<string> $executedSql SQL executed before failure
-     */
-    public static function failed(string $errorMessage, array $executedSql = []): self
-    {
-        return new self(self::STATUS_FAILED, $executedSql, [], $errorMessage);
-    }
-
-    public function isSuccess(): bool
-    {
-        return $this->status === self::STATUS_SUCCESS;
-    }
-
-    public function isSkipped(): bool
-    {
-        return $this->status === self::STATUS_SKIPPED;
-    }
-
-    public function isFailed(): bool
-    {
-        return $this->status === self::STATUS_FAILED;
-    }
-
-    /**
      * Check if any changes were made.
      */
     public function hasChanges(): bool
@@ -98,5 +82,20 @@ final class MigrationResult
     public function hasMismatches(): bool
     {
         return count($this->mismatches) > 0;
+    }
+
+    public function isFailed(): bool
+    {
+        return self::STATUS_FAILED === $this->status;
+    }
+
+    public function isSkipped(): bool
+    {
+        return self::STATUS_SKIPPED === $this->status;
+    }
+
+    public function isSuccess(): bool
+    {
+        return self::STATUS_SUCCESS === $this->status;
     }
 }
