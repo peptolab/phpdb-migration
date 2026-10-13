@@ -109,6 +109,25 @@ class SchemaInspectorTest extends TestCase
     }
 
     #[Test]
+    public function constraintExistsResolvesPhpDbPrefixedConstraintName(): void
+    {
+        $this->metadata->method('getTableNames')->willReturn(['parent_table']);
+
+        // php-db/phpdb-mysql 0.5 renamed the synthesized prefix to
+        // "_phpdb_{table}_{name}".
+        $constraint = new ConstraintObject('_phpdb_parent_table_chk_parent_name', 'parent_table');
+        $constraint->setType('CHECK');
+        $this->metadata
+            ->method('getConstraints')
+            ->with('parent_table')
+            ->willReturn([$constraint]);
+
+        $this->adapter->method('prepareQuery')->willThrowException(new Exception('Not supported'));
+
+        static::assertTrue($this->inspector->constraintExists('parent_table', 'chk_parent_name'));
+    }
+
+    #[Test]
     public function constraintExistsReturnsFalseWhenTableMissing(): void
     {
         $this->metadata->method('getTableNames')->willReturn([]);

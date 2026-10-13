@@ -15,6 +15,7 @@ use function array_key_exists;
 use function call_user_func;
 use function class_exists;
 use function in_array;
+use function is_string;
 use function str_starts_with;
 use function strlen;
 use function substr;
@@ -329,13 +330,15 @@ class SchemaInspector
             $this->constraintCache[$tableName][$name] = true;
 
             // Some metadata sources (e.g. php-db/phpdb-mysql) synthesize
-            // non-foreign-key constraint names as "_laminas_{table}_{name}"
-            // internally. Also register the un-prefixed name so lookups by
-            // the name a migration actually declared (e.g. via
-            // ensureUniqueKey()/ensureCheckConstraint()) still resolve.
-            $syntheticPrefix = "_laminas_{$tableName}_";
-            if (str_starts_with($name, $syntheticPrefix)) {
-                $this->constraintCache[$tableName][substr($name, strlen($syntheticPrefix))] = true;
+            // non-foreign-key constraint names as "_phpdb_{table}_{name}"
+            // ("_laminas_{table}_{name}" before phpdb-mysql 0.5's rename).
+            // Also register the un-prefixed name so lookups by the name a
+            // migration actually declared (e.g. via ensureUniqueKey()/
+            // ensureCheckConstraint()) still resolve.
+            foreach (["_phpdb_{$tableName}_", "_laminas_{$tableName}_"] as $syntheticPrefix) {
+                if (str_starts_with($name, $syntheticPrefix)) {
+                    $this->constraintCache[$tableName][substr($name, strlen($syntheticPrefix))] = true;
+                }
             }
 
             // Also track as index for unique constraints and primary keys
@@ -350,8 +353,10 @@ class SchemaInspector
             $result = $this->adapter->executeQuery($this->adapter->prepareQuery($sql))->getQueryResult()->toArray();
 
             foreach ($result as $row) {
-                $indexName                                = $row['Key_name'];
-                $this->indexCache[$tableName][$indexName] = true;
+                $indexName = $row['Key_name'] ?? null;
+                if (is_string($indexName)) {
+                    $this->indexCache[$tableName][$indexName] = true;
+                }
             }
         } catch (Exception) {
             // Silently fail - not all adapters support SHOW INDEX
