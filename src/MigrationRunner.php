@@ -345,12 +345,15 @@ class MigrationRunner
     /**
      * Record a migration as applied.
      *
+     * CURRENT_TIMESTAMP is standard SQL, so the insert works on SQLite and
+     * PostgreSQL as well as MySQL (NOW() is MySQL-only).
+     *
      * @throws AdapterRuntimeException
      */
     private function recordMigration(string $version, string $description): void
     {
         $sql = sprintf(
-            'INSERT INTO `%s` (`version`, `description`, `executed_at`) VALUES (?, ?, NOW())',
+            'INSERT INTO `%s` (`version`, `description`, `executed_at`) VALUES (?, ?, CURRENT_TIMESTAMP)',
             self::MIGRATIONS_TABLE,
         );
 

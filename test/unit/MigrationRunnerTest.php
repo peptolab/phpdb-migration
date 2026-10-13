@@ -20,7 +20,9 @@ use PHPUnit\Framework\MockObject\MockObject;
 use PHPUnit\Framework\TestCase;
 use RuntimeException;
 
+use function array_filter;
 use function implode;
+use function str_starts_with;
 
 class MigrationRunnerTest extends TestCase
 {
@@ -46,6 +48,32 @@ class MigrationRunnerTest extends TestCase
 
         static::assertNotNull($capturedSql);
         static::assertStringContainsString('CREATE TABLE IF NOT EXISTS', $capturedSql);
+    }
+
+    #[Test]
+    public function runMigrationRecordsTimestampPortably(): void
+    {
+        $this->metadata->method('getTableNames')->willReturn(['migrations']);
+
+        $capturedSql = [];
+        $this->adapter
+            ->method('prepareQuery')
+            ->willReturnCallback(function (string $sql) use (&$capturedSql) {
+                $capturedSql[] = $sql;
+                return $this->createMock(StatementInterface::class);
+            });
+        $this->adapter->method('executeQuery')->willReturn($this->createResult());
+
+        $runner = $this->createRunner();
+        $runner->runMigration($this->createSuccessfulMigration('20260201000000', 'Test migration'));
+
+        $insert = implode("\n", array_filter(
+            $capturedSql,
+            static fn(string $sql): bool => str_starts_with($sql, 'INSERT INTO'),
+        ));
+
+        static::assertStringContainsString('CURRENT_TIMESTAMP', $insert);
+        static::assertStringNotContainsString('NOW()', $insert);
     }
 
     #[Test]
