@@ -336,9 +336,11 @@ class SchemaInspector
             // migration actually declared (e.g. via ensureUniqueKey()/
             // ensureCheckConstraint()) still resolve.
             foreach (["_phpdb_{$tableName}_", "_laminas_{$tableName}_"] as $syntheticPrefix) {
-                if (str_starts_with($name, $syntheticPrefix)) {
-                    $this->constraintCache[$tableName][substr($name, strlen($syntheticPrefix))] = true;
+                if (! str_starts_with($name, $syntheticPrefix)) {
+                    continue;
                 }
+
+                $this->constraintCache[$tableName][substr($name, strlen($syntheticPrefix))] = true;
             }
 
             // Also track as index for unique constraints and primary keys
@@ -354,9 +356,11 @@ class SchemaInspector
 
             foreach ($result as $row) {
                 $indexName = $row['Key_name'] ?? null;
-                if (is_string($indexName)) {
-                    $this->indexCache[$tableName][$indexName] = true;
+                if (! is_string($indexName)) {
+                    continue;
                 }
+
+                $this->indexCache[$tableName][$indexName] = true;
             }
         } catch (Exception) {
             // Silently fail - not all adapters support SHOW INDEX
